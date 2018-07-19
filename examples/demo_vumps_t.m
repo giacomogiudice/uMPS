@@ -4,16 +4,23 @@ sy = [0,-1i;1i,0];
 sz = [1,0;0,-1];
 si = eye(2);
 % Define Ising 2-body Hamiltonian term
-g = 0.9;
-h = -ncon({sz,sz},{[-1,-3],[-2,-4]}) - g/2*(ncon({sx,si},{[-1,-3],[-2,-4]}) + ncon({si,sx},{[-1,-3],[-2,-4]}));
+h = 0.6;
+H_twosite = -ncon({sz,sz},{[-1,-3],[-2,-4]}) - h/2*(ncon({sx,si},{[-1,-3],[-2,-4]}) + ncon({si,sx},{[-1,-3],[-2,-4]}));
 % Exact energy
-E_exact = integral(@(k) (-1/pi)*sqrt(1+g^2-2*g*cos(k)),0,pi,'RelTol',eps);
+flambda = @(k) sqrt(h^2 + 2*h*cos(k) + 1);
+E_exact = integral(@(k) (-1/pi)*flambda(k),0,pi,'RelTol',eps);
+if h < 1
+	mz_exact = (1 - h^2)^(1/8);
+else
+	mz_exact = 0;
+end
+mx_exact = integral(@(k) (1/pi)*((h + cos(k))./flambda(k)),0,pi,'RelTol',eps);
 
 % Define parameters for VUMPS simulation
-D = 20;
+D = 15;
 d = 2;
 settings.mode = 'twosite';
-settings.maxit = 15;
+settings.maxit = 20;
 settings.tol = eps;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
@@ -21,7 +28,7 @@ if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.C = C;
 end
 % Launch VUMPS simulation
-[A_left,A_right,C,output,stats] = vumps(h,D,d,settings);
+[A_left,A_right,C,output,stats] = vumps(H_twosite,D,d,settings);
 output
 
 % Plot results
@@ -36,15 +43,13 @@ legend({'$|E - E_{\rm exact}|$','$|E^{(n)} - E^{(n-1)}|$','$\epsilon$'})
 
 figure(2)
 plot(diag(C),'x')
+hold on
 set(gca,'yscale','log')
 xlabel('$k$')
 ylabel('$\lambda_k$')
 
-% Compute observables
-magn_x_twosite = 1/2*(ncon({sx,si},{[-1,-3],[-2,-4]}) + ncon({si,sx},{[-1,-3],[-2,-4]}));
-magn_z_twosite = 1/2*(ncon({sz,si},{[-1,-3],[-2,-4]}) + ncon({si,sz},{[-1,-3],[-2,-4]}));
-block_twosite = ncon({A_left,C,A_right},{[-1,1,-2],[1,2],[2,-4,-3]});
-E = real(ncon({conj(block_twosite),h,block_twosite},{[5,1,2,6],[1,2,3,4],[5,3,4,6]}));
-magn_x = real(ncon({conj(block_twosite),magn_x_twosite,block_twosite},{[5,1,2,6],[1,2,3,4],[5,3,4,6]}));
-magn_z = real(ncon({conj(block_twosite),magn_z_twosite,block_twosite},{[5,1,2,6],[1,2,3,4],[5,3,4,6]}));
-[magn_x magn_z]
+% Compare observables
+E = output.energy;
+mx = abs(trace(applyT(C'*C,A_left,sx,A_left,'r')));
+mz = abs(trace(applyT(C'*C,A_left,sz,A_left,'r')));
+fprintf('<H> error: %.4g, <X> error: %.4g, <Z> error: %.4g\n',abs(E - E_exact),abs(mx - mx_exact),abs(mz - mz_exact));

@@ -6,16 +6,16 @@ sz = 1/2*[1,0;0,-1];
 model = 'xxz'
 if isequal(model,'ising')
 	% Transverse field
-	g = -2;
+	h = -2;
 	% Define MPO
 	W = cell(3,3);
 	W{1,1} = 1;
 	W{2,1} = -sz;
-	W{3,1} = -g*sx;
+	W{3,1} = -h*sx;
 	W{3,2} = sz;
 	W{3,3} = 1;
 	% Exact energy
-	E_exact = integral(@(k) -1/(2*pi)*sqrt(1/4+g^2+g*cos(k)),0,pi,'RelTol',eps);
+	E_exact = integral(@(k) -1/(2*pi)*sqrt(1/4+h^2+h*cos(k)),0,pi,'RelTol',eps);
 elseif isequal(model,'xxz')
 	% Coupling along z (set between -1 and 1)
 	Delta = 0.8;
