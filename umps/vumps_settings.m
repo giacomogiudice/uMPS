@@ -19,7 +19,7 @@ settings.eigsolver.options.dynamictol = true;
 settings.eigsolver.options.dynamicfactor = 1e-2;
 settings.eigsolver.options.mintol = eps;
 settings.eigsolver.options.maxtol = 1e-3;
-settings.linsolver.handle = @gmres_;
+settings.linsolver.handle = @bicgstab_;
 settings.linsolver.options = struct;
 settings.linsolver.options.tol = 1e-12;
 settings.linsolver.options.maxit = 100;
@@ -60,12 +60,4 @@ function defaults = mergestruct(defaults,mods)
 			defaults.(l) = mods.(l);
 		end			
 	end
-end
-
-function [x,flag,relres,iter,resvec] = bicgstab_(Afun,b,options)
-	[x,flag,relres,iter,resvec] = bicgstab(Afun,b,options.tol,options.maxit,[],[],options.v0);
-end
-
-function [x,flag,relres,iter,resvec] = gmres_(Afun,b,options)
-	[x,flag,relres,iter,resvec] = gmres(Afun,b,numel(b),options.tol,options.maxit,[],[],options.v0);
 end

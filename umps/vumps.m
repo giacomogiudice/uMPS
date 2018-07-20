@@ -94,10 +94,11 @@ end
 % Main VUMPS loop
 output.flag = 1;
 if settings.verbose
-	fprintf('Iter\t      Energy\t Energy Diff\t Gauge Error\n')
+	fprintf('Iter\t      Energy\t Energy Diff\t Gauge Error\tLap Time [s]\n')
 	fprintf('   0\t%12g\n',energy_prev);
 end
 for iter = 1:settings.maxit
+	tic
 	% Solve effective problem for A
 	settings.eigsolver.options.v0 = reshape(A,[D*D*d,1]);
 	applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H,H_left,H_right,A_left,A_right),[D*D*d,1]);
@@ -116,10 +117,18 @@ for iter = 1:settings.maxit
 	settings.advice.H_right = H_right;
 	% Update the environment blocks
 	[H_left,H_right,energy] = fixedblocks(H,A_left,A_right,settings);
+	% Update tolerances
+	if settings.eigsolver.options.dynamictol
+		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
+	end
+	if settings.linsolver.options.dynamictol
+		settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
+	end
+	laptime = toc;
 	% Get error
 	err = max(error_gauge(A,C,A_left,A_right));
 	if settings.verbose
-		fprintf('%4d\t%12g\t%12g\t%12g\n',iter,mean(energy),mean(energy_prev - energy),max(err));
+		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,mean(energy),mean(energy_prev - energy),max(err),laptime);
 	end
 	if savestats
 		stats.err(iter) = err;
@@ -129,13 +138,6 @@ for iter = 1:settings.maxit
 	if err < settings.tol
 		output.flag = 0;
 		break
-	end
-	% Update tolerances
-	if settings.eigsolver.options.dynamictol
-		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
-	end
-	if settings.linsolver.options.dynamictol
-		settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
 	end
 	energy_prev = energy;
 end
