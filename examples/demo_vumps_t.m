@@ -22,6 +22,10 @@ d = 2;
 settings.mode = 'twosite';
 settings.maxit = 20;
 settings.tol = eps;
+% For small bond dimensions, dynamic precision can be disabled for faster convergence
+% However, one should make sure that these tolerances are not smaller than settings.tol
+settings.eigsolver.options.dynamictol = false;
+settings.linsolver.options.dynamictol = false;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
 	settings.initial.A_right = A_right;
