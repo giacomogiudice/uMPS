@@ -42,7 +42,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	assert(isequal(size(A_left),size(A_right)));
 	assert(isequal([size(A_left,1),size(A_left,2)],size(C)));
 	% Compute error to update tolerances
-	err = max(error_gauge(A,C,A_left,A_right));
+	err = error_gauge(A,C,A_left,A_right,'center');
 	% Update tolerances
 	if settings.eigsolver.options.dynamictol
 		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
@@ -81,7 +81,7 @@ if nargout == 5
 	stats.energydiff = zeros(1,settings.maxit);
 end
 % Build left and right blocks
-err = max(error_gauge(A,C,A_left,A_right));
+err = error_gauge(A,C,A_left,A_right);
 % Update tolerances
 if settings.eigsolver.options.dynamictol
 	settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
@@ -126,7 +126,7 @@ for iter = 1:settings.maxit
 	end
 	laptime = toc;
 	% Get error
-	err = max(error_gauge(A,C,A_left,A_right));
+	err = error_gauge(A,C,A_left,A_right);
 	if settings.verbose
 		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,mean(energy),mean(energy_prev - energy),max(err),laptime);
 	end
