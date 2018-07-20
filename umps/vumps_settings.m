@@ -7,6 +7,7 @@ settings.tol = 1e-12;
 settings.isreal = false;
 settings.verbose = true;
 settings.initial = struct;
+settings.advice = struct;
 settings.eigsolver = struct;
 settings.eigsolver.handle = @eigs;
 settings.eigsolver.mode = 'sr';
@@ -18,9 +19,10 @@ settings.eigsolver.options.dynamictol = false;
 settings.eigsolver.options.dynamicfactor = 1e-2;
 settings.eigsolver.options.mintol = eps;
 settings.eigsolver.options.maxtol = 1e-3;
-settings.linsolver.handle = @gmres;
-settings.linsolver.options.tol = eps;
-settings.linsolver.options.maxit = 500;
+settings.linsolver.handle = @gmres_;
+settings.linsolver.options = struct;
+settings.linsolver.options.tol = 1e-12;
+settings.linsolver.options.maxit = 100;
 settings.linsolver.options.dynamictol = false;
 settings.linsolver.options.dynamicfactor = 1e-2;
 settings.linsolver.options.mintol = eps;
@@ -52,10 +54,18 @@ function defaults = mergestruct(defaults,mods)
 	labels = fieldnames(mods);
 	for ind = 1:length(labels)
 		l = labels{ind};
-		if isstruct(mods.(l)) & ~isfield(defaults,l)
+		if isstruct(mods.(l))
 			defaults.(l) = mergestruct(defaults.(l),mods.(l));
 		else
 			defaults.(l) = mods.(l);
 		end			
 	end
+end
+
+function [x,flag,relres,iter,resvec] = bicgstab_(Afun,b,options)
+	[x,flag,relres,iter,resvec] = bicgstab(Afun,b,options.tol,options.maxit,[],[],options.v0);
+end
+
+function [x,flag,relres,iter,resvec] = gmres_(Afun,b,options)
+	[x,flag,relres,iter,resvec] = gmres(Afun,b,numel(b),options.tol,options.maxit,[],[],options.v0);
 end

@@ -32,28 +32,39 @@ elseif isequal(settings.mode,'multicell')
 else
 	error(['Unrecognized mode' settings.mode])
 end
-% Generate random tensor
-A = randn([D,D,d]);
-if ~settings.isreal
-	A = A + 1i*randn([D,D,d]);
-end
+
 if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	% The initial conditions are provided
 	A_left = settings.initial.A_left;
 	A_right = settings.initial.A_right;
-	C = settings.initial.C; 
+	C = settings.initial.C;
+	A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 	assert(isequal(size(A_left),size(A_right)));
 	assert(isequal([size(A_left,1),size(A_left,2)],size(C)));
+	% Compute error to update tolerances
+	err = max(error_gauge(A,C,A_left,A_right));
+	% Update tolerances
+	if settings.eigsolver.options.dynamictol
+		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
+	end
+	if settings.linsolver.options.dynamictol
+		settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
+	end 
 	if D > size(A_left,1)
 		% Increase the bond dimension
 		[H_left,H_right] = fixedblocks(H,A_left,A_right,settings);
 		fapplyHC = @(M) applyHC(M,H,H_left,H_right,A_left,A_right);
 		[A_left,A_right,C] = increasebond(D,A_left,A_right,C,fapplyHC);
+		A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 	elseif D < size(A_left,1)
 		error('Bond dimension provided is smaller than initial conditions');
 	end
 else 
 	% Nothing is provided, generate at random
+	A = randn([D,D,d]);
+	if ~settings.isreal
+		A = A + 1i*randn([D,D,d]);
+	end
 	C = diag(rand(D,1));
 	C = C/trace(C*C');
 	[A_left,A_right] = update_canonical(A,C);
@@ -70,8 +81,16 @@ if nargout == 5
 	stats.energydiff = zeros(1,settings.maxit);
 end
 % Build left and right blocks
-[H_left,H_right,energy_prev] = fixedblocks(H,A_left,A_right,settings);
 err = max(error_gauge(A,C,A_left,A_right));
+% Update tolerances
+if settings.eigsolver.options.dynamictol
+	settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
+end
+if settings.linsolver.options.dynamictol
+	settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
+end
+% Update the environment blocks
+[H_left,H_right,energy_prev] = fixedblocks(H,A_left,A_right,settings);
 % Main VUMPS loop
 output.flag = 1;
 if settings.verbose
@@ -79,13 +98,6 @@ if settings.verbose
 	fprintf('   0\t%12g\n',energy_prev);
 end
 for iter = 1:settings.maxit
-	% Update tolerances
-	if settings.eigsolver.options.dynamictol
-		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
-	end
-	if settings.linsolver.options.dynamictol
-		settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
-	end
 	% Solve effective problem for A
 	settings.eigsolver.options.v0 = reshape(A,[D*D*d,1]);
 	applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H,H_left,H_right,A_left,A_right),[D*D*d,1]);
@@ -98,9 +110,11 @@ for iter = 1:settings.maxit
 	C = reshape(Cv,[D,D]);
 	% Update the canonical forms
 	[A_left,A_right] = update_canonical(A,C);
-	% Update the blocks
-	settings.eigsolver.options.guess_left = reshape(C'*C,[D^2,1]);
-	settings.eigsolver.options.guess_right = reshape(C*C',[D^2,1]);
+	% Update advice for next calculations
+	settings.advice.C = C;
+	settings.advice.H_left = H_left;
+	settings.advice.H_right = H_right;
+	% Update the environment blocks
 	[H_left,H_right,energy] = fixedblocks(H,A_left,A_right,settings);
 	% Get error
 	err = max(error_gauge(A,C,A_left,A_right));
@@ -115,6 +129,13 @@ for iter = 1:settings.maxit
 	if err < settings.tol
 		output.flag = 0;
 		break
+	end
+	% Update tolerances
+	if settings.eigsolver.options.dynamictol
+		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
+	end
+	if settings.linsolver.options.dynamictol
+		settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
 	end
 	energy_prev = energy;
 end
