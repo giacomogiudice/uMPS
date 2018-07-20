@@ -1,6 +1,6 @@
 function [A_left,A_right,schmidt] = canonical(A,D_max)
 % Convention is (bond,bond,physical)
-opts.issym = true;
+opts.issym = false;
 opts.isreal = isreal(A);
 D = size(A,1);
 if nargin == 1

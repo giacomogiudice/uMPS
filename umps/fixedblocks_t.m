@@ -16,7 +16,7 @@ else
 	eigsolver_options.isreal = settings.isreal;
 end
 eigsolver_mode = 'lm';
-eigsolver_options.issym = true;
+eigsolver_options.issym = false;
 
 % Left block
 % Compute right dominant eigenvector of A_left

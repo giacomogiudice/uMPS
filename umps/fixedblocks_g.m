@@ -10,7 +10,7 @@ else
 	eigsolver_options.isreal = settings.isreal;
 end
 eigsolver_mode = 'lm';
-eigsolver_options.issym = true;
+eigsolver_options.issym = false;
 
 % Compute right dominant eigenvector
 fapplyTv = @(v) applyTv(v,A_left,H,A_left,'l');

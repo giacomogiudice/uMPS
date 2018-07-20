@@ -3,6 +3,9 @@ function [A_left_new,A_right_new,C_new] = increasebond(D_new,A_left,A_right,C,ap
 if D_new <= D
 	error('Bond dimension can only be increased.')
 end
+if D_new > 2*D
+	error('Increasing the bond dimension by more than twice is not possible.');
+end
 A_left_new = zeros(D_new,D_new,d);
 A_right_new = zeros(D_new,D_new,d);
 C_new = zeros(D_new,D_new);

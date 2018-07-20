@@ -17,7 +17,7 @@ else
 	eigsolver_options.isreal = settings.isreal;
 end
 eigsolver_mode = 'lm';
-eigsolver_options.issym = true;
+eigsolver_options.issym = false;
 
 % Calculate H_left block
 H_left = zeros([D*D,chi]);
