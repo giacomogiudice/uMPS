@@ -8,21 +8,21 @@ end
 % Select mode of operation
 if isequal(settings.mode,'schur')
 	chi = size(H,1);
-	assert(iscell(H));
-	assert(isequal(size(H),[chi,chi]));
+	assert(iscell(H),'Input operator should be a cell array.');
+	assert(isequal(size(H),[chi,chi]),'Size mismatch in input operator.');
 	fixedblocks = @fixedblocks_s;
 	applyHA = @applyHA_s;
 	applyHC = @applyHC_g;
 	applyH2s = @applyH2s_s;
 elseif isequal(settings.mode,'generic')
 	chi = size(H,1);
-	assert(isequal(size(H),[chi,chi]));
+	assert(isequal(size(H),[chi,chi,d,d]),'Input operator should be a rank-4 tensor.');
 	fixedblocks = @fixedblocks_g;
 	applyHA = @applyHA_g;
 	applyHC = @applyHC_g;
 	applyH2s = @applyH2s_g;
 elseif isequal(settings.mode,'twosite')
-	assert(isequal(size(H),[d,d,d,d]));
+	assert(isequal(size(H),[d,d,d,d]),'Input operator should be a rank-4 tensor.');
 	fixedblocks = @fixedblocks_t;
 	applyHA = @applyHA_t;
 	applyHC = @applyHC_t;
@@ -38,11 +38,10 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	A_left = settings.initial.A_left;
 	A_right = settings.initial.A_right;
 	C = settings.initial.C;
-	A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
-	assert(isequal(size(A_left),size(A_right)));
-	assert(isequal([size(A_left,1),size(A_left,2)],size(C)));
+	assert(isequal(size(A_left),size(A_right)),'Size mismatch between left and right canonical forms.');
+	assert(isequal([size(A_left,1),size(A_left,2)],size(C)),'Size mismatch between canonical forms and central tensor');
 	% Compute error to update tolerances
-	err = error_gauge(A,C,A_left,A_right,'center');
+	err = error_gauge([],C,A_left,A_right,'center');
 	% Update tolerances
 	if settings.eigsolver.options.dynamictol
 		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
@@ -50,6 +49,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	if settings.linsolver.options.dynamictol
 		settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
 	end 
+	A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 	if D > size(A_left,1)
 		% Increase the bond dimension
 		[H_left,H_right] = fixedblocks(H,A_left,A_right,settings);
