@@ -32,7 +32,7 @@ rho_right = rho_right/(id'*rho_right);
 % Start from the corner
 a = chi;
 if H{a,a} ~= 1
-	error(['Element H{' num2str(a) ',' num2str(a) '} must be 1']);
+	error(['Element H{' num2str(a) ',' num2str(a) '} must be 1.']);
 end
 H_left(:,a) = id;
 for a = (chi-1):-1:1
@@ -44,12 +44,12 @@ for a = (chi-1):-1:1
 		end
 	end
 	% Load initial guess
-	if isstruct(settings) & isfield(settings.advice,'H_left')
+	if isstruct(settings) & isfield(settings.advice,'H_left.')
 		settings.linsolver.options.v0 = reshape(settings.advice.H_left(:,:,a),[D*D,1]);
 	end
 	% Compute new L_a
 	if ~isempty(H{a,a}) & ~isscalar(H{a,a})
-		error(['Element H{' num2str(a) ',' num2str(a) '} is not a scalar'])
+		error(['Element H{' num2str(a) ',' num2str(a) '} is not a scalar.'])
 	elseif isempty(H{a,a}) || H{a,a} == 0
 		H_left(:,a) = Y;
 	elseif H{a,a} == 1
@@ -59,7 +59,7 @@ for a = (chi-1):-1:1
 		applyM_left = @(x) x - H{a,a}*applyTv(x,A_left,1,A_left,'l');
 		[H_left(:,a),~] = linsolver(applyM_left,Y,settings.linsolver.options);
 	else
-		error(['Element H{' num2str(a) ',' num2str(a) '} has absolute value larger than 1'])
+		error(['Element H{' num2str(a) ',' num2str(a) '} has absolute value larger than 1.'])
 	end
 end
 H_left = reshape(H_left,[D,D,chi]); 
@@ -77,7 +77,7 @@ rho_left = rho_left/(id'*rho_left);
 % Start from the corner
 a = 1;
 if H{a,a} ~= 1
-	error(['Element H{' num2str(a) ',' num2str(a) '} must be 1']);
+	error(['Element H{' num2str(a) ',' num2str(a) '} must be 1.']);
 end
 H_right(:,a) = id;
 for a = 2:chi
@@ -94,7 +94,7 @@ for a = 2:chi
 	end
 	% Compute new R_a 
 	if ~isempty(H{a,a}) & ~isscalar(H{a,a})
-		error(['Element H{' num2str(a) ',' num2str(a) '} is not a scalar'])
+		error(['Element H{' num2str(a) ',' num2str(a) '} is not a scalar.'])
 	elseif isempty(H{a,a}) || H{a,a} == 0
 		H_right(:,a) = Y;
 	elseif H{a,a} == 1
@@ -104,7 +104,7 @@ for a = 2:chi
 		applyM_right = @(x) x - H{a,a}*applyTv(x,A_right,1,A_right,'r');
 		[H_right(:,a),~] = linsolver(applyM_right,Y,settings.linsolver.options);
 	else
-		error(['Element H{' num2str(a) ',' num2str(a) '} has absolute value larger than 1'])
+		error(['Element H{' num2str(a) ',' num2str(a) '} has absolute value larger than 1.'])
 	end
 end
 E_right = real(Y.'*rho_left);
