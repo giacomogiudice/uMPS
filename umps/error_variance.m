@@ -3,7 +3,7 @@ function g = error_variance(A_left,A_right,C,applyHA,applyH2s)
 % as explained in arXiv:1711.01104.  
 % Nullspaces
 N_left = nullspace(A_left,'l');
-N_right = nullspace(A_right,'l');
+N_right = nullspace(A_right,'r');
 % First projector
 A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 B = ncon({conj(N_left),applyHA(A)},{[1,-1,2],[1,-2,2]});
