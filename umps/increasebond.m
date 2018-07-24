@@ -1,7 +1,7 @@
 function [A_left_new,A_right_new,C_new] = increasebond(D_new,A_left,A_right,C,applyHC)
 [D,~,d] = size(A_left);
-assert(D_new <= D,'Bond dimension can only be increased.');
-assert(D_new > 2*D,'Increasing the bond dimension by more than twice is not possible.');
+assert(D_new >= D,'Bond dimension can only be increased.');
+assert(D_new <= 2*D,'Increasing the bond dimension by more than twice is not possible.');
 A_left_new = zeros(D_new,D_new,d);
 A_right_new = zeros(D_new,D_new,d);
 C_new = zeros(D_new,D_new);

@@ -54,7 +54,7 @@ for a = (chi-1):-1:1
 		H_left(:,a) = Y;
 	elseif H{a,a} == 1
 		applyM_left = @(x) x - applyTv(x,A_left,1,A_left,'l') + (rho_right.'*x)*id;
-		H_left(:,a) = linsolver(applyM_left,Y - (rho_right.'*Y)*id,settings.linsolver.options);
+		[H_left(:,a),~] = linsolver(applyM_left,Y - (rho_right.'*Y)*id,settings.linsolver.options);
 	elseif abs(H{a,a}) < 1
 		applyM_left = @(x) x - H{a,a}*applyTv(x,A_left,1,A_left,'l');
 		[H_left(:,a),~] = linsolver(applyM_left,Y,settings.linsolver.options);

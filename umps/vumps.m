@@ -28,7 +28,8 @@ elseif isequal(settings.mode,'twosite')
 	applyHC = @applyHC_t;
 	applyH2s = @applyH2s_t;
 elseif isequal(settings.mode,'multicell')
-	error('Multicell mode not available.');
+	[A_left,A_right,C,output,stats] = vumps_multicell(H,D,d,settings);
+	return
 else
 	error(['Unrecognized mode' settings.mode])
 end
@@ -128,7 +129,7 @@ for iter = 1:settings.maxit
 	% Get error
 	err = error_gauge(A,C,A_left,A_right);
 	if settings.verbose
-		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,mean(energy),mean(energy_prev - energy),max(err),laptime);
+		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,energy,energy_prev - energy,err,laptime);
 	end
 	if savestats
 		stats.err(iter) = err;
