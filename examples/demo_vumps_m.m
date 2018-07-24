@@ -11,7 +11,7 @@ W{2,1} = sz;
 W{3,1} = -h*sx;
 W{3,2} = sz;
 W{3,3} = 1;
-H = {W,W};
+H = {W,W,W,W};
 
 % Exact energy
 flambda = @(k) sqrt(h^2 + 2*h*cos(k) + 1);
@@ -23,6 +23,11 @@ d = 2;
 settings.mode = 'multicell';
 settings.maxit = 20;
 settings.tol = eps;
+if exist('A_left','var') & exist('A_right','var') & exist('C','var')
+	settings.initial.A_left = A_left;
+	settings.initial.A_right = A_right;
+	settings.initial.C = C;
+end
 
 % Launch VUMPS simulation
 [A_left,A_right,C,output,stats] = vumps(H,D,d,settings);

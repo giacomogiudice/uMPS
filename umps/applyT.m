@@ -27,7 +27,7 @@ elseif direction == 'r'
 		W = ncon({M,conj(A_1),O,A_2},{[1,3,5],[-1,1,2],[-3,3,2,4],[-2,5,4]});
 	end
 else
-	error(['Unrecognized direction' direction]);
+	error(['Unrecognized direction' direction '.']);
 end
 end
 
@@ -68,6 +68,8 @@ elseif direction == 'r'
 			end
 		end
 	end
+else
+	error(['Unrecognized direction' direction '.']);
 end
 end
 

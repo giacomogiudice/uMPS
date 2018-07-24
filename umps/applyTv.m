@@ -1,5 +1,5 @@
 function w = applyTv(v,A_1,O,A_2,direction)
-
+% Wrapper for 'applyT', but accepts a vector and returns a vector
 if iscell(A_1)
 	D_1 = size(A_1{1},1);
 	D_2 = size(A_2{1},1);

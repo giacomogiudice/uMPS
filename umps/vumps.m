@@ -90,7 +90,7 @@ end
 if settings.linsolver.options.dynamictol
 	settings.linsolver.options.tol = update_tol(err,settings.linsolver.options);
 end
-% Update the environment blocks
+% Generate the environment blocks
 [H_left,H_right,energy_prev] = fixedblocks(H,A_left,A_right,settings);
 % Main VUMPS loop
 output.flag = 1;
@@ -128,6 +128,7 @@ for iter = 1:settings.maxit
 	laptime = toc;
 	% Get error
 	err = error_gauge(A,C,A_left,A_right);
+	% Print results of interation
 	if settings.verbose
 		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,energy,energy_prev - energy,err,laptime);
 	end

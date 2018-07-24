@@ -1,24 +1,64 @@
 function [A_left,A_right,C,output,stats] = vumps_multicell(H,D,d,settings)
 N = length(H);
+if N == 1
+	warning('VUMPS:vumps_multicell:singlecell','multicell version is suboptimal for a single site unit cell.');
+end
+pbc = @(n) mod(n+N-1,N) + 1;
+shift = @(C,n) circshift(C,-[0,n]);
 fixedblock = @fixedblock_m;
 applyHA = @applyHA_s;
 applyHC = @applyHC_g;
 applyH2s = @applyH2s_s;
-pbc = @(n) mod(n+N-1,N) + 1;
-% Intialize at random
-A_left = cell(1,N);
-A_right = cell(1,N);
-C = cell(1,N);;
 
-for n = 1:N
-	A = randn([D,D,d]) + 1i*randn([D,D,d]);
-	C{n} = diag(rand(1,D));
-	[A_left{n},A_right{n}] = update_canonical(A,C{n});
+if all(isfield(settings.initial,{'A_left','A_right','C'}))
+	% The initial conditions are provided
+	A_left = settings.initial.A_left;
+	A_right = settings.initial.A_right;
+	C = settings.initial.C;
+	assert(isequal(size(A_left),size(A_right),size(C)),'Size mismatch between input cell arrays.');
+	assert(all(cellfun(@(Al,Ar) isequal(size(Al),size(Ar)),A_left,A_right)),'Size mismatch between left and right canonical forms.');
+	assert(all(cellfun(@(Al,Ac) isequal([size(Al,1),size(Al,1)],size(Ac)),A_left,C)),'Size mismatch between canonical forms and central tensor');
+	A = cell(1,N);
+	% Compute error to update tolerances
+	for n = 1:N
+		err(n) = error_gauge_m(A{n},C{pbc(n-1)},C{n},A_left{n},A_right{n},'center');
+	end
+	% Update tolerances
+	if settings.eigsolver.options.dynamictol
+		settings.eigsolver.options.tol = update_tol(min(err),settings.eigsolver.options);
+	end
+	if settings.linsolver.options.dynamictol
+		settings.linsolver.options.tol = update_tol(min(err),settings.linsolver.options);
+	end 
+	if D > size(A_left{1},1)
+		% Increase the bond dimension
+		for n = 1:N
+			[B_left,~] = fixedblock(shift(H,n-1),shift(A_left,n-1),'l',settings);
+			[B_right,~] = fixedblock(shift(H,n),shift(A_right,n),'r',settings);
+			fapplyHC = @(M) applyHC(M,H{n},B_left,B_right,A_left{n},A_right{n});
+			[Anew_left{n},Anew_right{n},Cnew{n}] = increasebond(D,A_left{n},A_right{n},C{n},fapplyHC);
+		end
+		A_right = Anew_right;
+		A_left = Anew_left;
+		C = Cnew;
+	elseif D < size(A_left,1)
+		error('Bond dimension provided is smaller than initial conditions');
+	end
+	for n = 1:N
+		A{n} = ncon({A_left{n},C{n}},{[-1,1,-3],[1,-2]});
+	end
+else 
+	% Nothing is provided, generate at random
+	A_left = cell(1,N);
+	A_right = cell(1,N);
+	A = cellfun(@(h) randn([D,D,d]) + 1i*randn([D,D,d]),H,'UniformOutput',false);
+	C = cellfun(@(h) diag(rand(1,D)),H,'UniformOutput',false);
+	for n = 1:N
+		[A_left{n},A_right{n}] = update_canonical_m(A{n},C{pbc(n-1)},C{n});
+	end
 end
-
 % Define solvers
 eigsolver = settings.eigsolver.handle;
-% settings.eigsolver.options.v0 = [];
 % Initialize stats log
 stats = struct;
 if nargout == 5
@@ -27,47 +67,79 @@ if nargout == 5
 	stats.energy = zeros(1,settings.maxit);
 	stats.energydiff = zeros(1,settings.maxit);
 end
-% TODO Update tolerances
+% Build left and right blocks
+for n = 1:N
+	err(n) = error_gauge_m(A{n},C{pbc(n-1)},C{n},A_left{n},A_right{n});
+end
+% Update tolerances
+if settings.eigsolver.options.dynamictol
+	settings.eigsolver.options.tol = update_tol(min(err),settings.eigsolver.options);
+end
+if settings.linsolver.options.dynamictol
+	settings.linsolver.options.tol = update_tol(min(err),settings.linsolver.options);
+end
+% Generate the environment blocks
+energy = zeros(1,N);
+energy_prev = zeros(1,N);
+B_left = cell(1,N);
+B_right = cell(1,N);
+for n = 1:N
+	[B_left{n},energy_left] = fixedblock(shift(H,n-1),shift(A_left,n-1),'l',settings);
+	[B_right{n},energy_right] = fixedblock(shift(H,n),shift(A_right,n),'r',settings);
+	energy_prev(n) = mean([energy_left,energy_right]);
+end
 % Main VUMPS loop
 output.flag = 1;
 if settings.verbose
 	fprintf('Iter\t      Energy\t Energy Diff\t Gauge Error\tLap Time [s]\n')
-	% fprintf('   0\t%12g\n',energy_prev);
+	fprintf('   0\t%12g\n',mean(energy_prev));
 end
-energy_prev = inf;
 for iter = 1:settings.maxit
 	tic
 	for n = 1:N
-		% Update environments
-		[L,energy_left] = fixedblock(circshift(H,-[0,n-1]),circshift(A_left,-[0,n-1]),circshift(A_right,-[0,n-1]),'l',settings);
-		[R,energy_right] = fixedblock(circshift(H,-[0,n]),circshift(A_left,-[0,n]),circshift(A_right,-[0,n]),'r',settings);
-		L_prime = applyT(L,A_left{n},H{n},A_left{n},'l');
-		R_prime = applyT(R,A_right{n},H{n},A_right{n},'r');
 		% Solve effective problem for A
-		% settings.eigsolver.options.v0 = reshape(A,[D*D*d,1]);
-		applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H{n},L,R),[D*D*d,1]);
+		settings.eigsolver.options.v0 = reshape(A{n},[D*D*d,1]);
+		applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H{n},B_left{n},B_right{n}),[D*D*d,1]);
 		[Av,~] = eigsolver(applyHAv,D*D*d,1,settings.eigsolver.mode,settings.eigsolver.options);
-		A = reshape(Av,[D,D,d]);
+		A{n} = reshape(Av,[D,D,d]);
 		% Solve effective problem for C_left
-		% settings.eigsolver.options.v0 = reshape(C{n},[D*D,1]);
-		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],L,R_prime),[D*D,1]);
+		B_mid = applyT(B_right{n},A_right{n},H{n},A_right{n},'r');
+		settings.eigsolver.options.v0 = reshape(C{pbc(n-1)},[D*D,1]);
+		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],B_left{n},B_mid),[D*D,1]);
 		[Cv,~] = eigsolver(applyHCv,D*D,1,settings.eigsolver.mode,settings.eigsolver.options);
+		Cv = Cv/sign(Cv(1));
 		C_left = reshape(Cv,[D,D]);
 		% Solve effective problem for C_right
-		% settings.eigsolver.options.v0 = reshape(C{pbc(n)},[D*D,1]);
-		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],L_prime,R),[D*D,1]);
+		B_mid = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
+		settings.eigsolver.options.v0 = reshape(C{n},[D*D,1]);
+		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],B_mid,B_right{n}),[D*D,1]);
 		[Cv,~] = eigsolver(applyHCv,D*D,1,settings.eigsolver.mode,settings.eigsolver.options);
+		Cv = Cv/sign(Cv(1));
 		C_right = reshape(Cv,[D,D]);
 		% Update the canonical forms
-		[A_left{n},A_right{n}] = update_canonical_m(A,C_left,C_right);
-		C{pbc(n-1)} = C_right;
-		C{n} = C_left;
+		[A_left{n},A_right{n}] = update_canonical_m(A{n},C_left,C_right);
+		C{pbc(n-1)} = C_left;
+		C{n} = C_right;
 		% Get error
-		err(n) = error_gauge_m(A,C_left,C_right,A_left{n},A_right{n});
+		err(n) = error_gauge_m(A{n},C_left,C_right,A_left{n},A_right{n});
+		% Update the next environment blocks
+		settings.advice.C = C{n};
+		settings.advice.B = B_left{pbc(n+1)};
+		[B_left{pbc(n+1)},energy_left] = fixedblock(shift(H,n),shift(A_left,n),'l',settings);
+		settings.advice.C = C{pbc(n+1)};
+		settings.advice.B = B_right{pbc(n+1)};
+		[B_right{pbc(n+1)},energy_right] = fixedblock(shift(H,n+1),shift(A_right,n+1),'r',settings);
 		energy(n) = mean([energy_left,energy_right]);
-		% Update the environment blocks
-		laptime = toc;
 	end
+	laptime = toc;
+	% Update tolerances
+	if settings.eigsolver.options.dynamictol
+		settings.eigsolver.options.tol = update_tol(min(err),settings.eigsolver.options);
+	end
+	if settings.linsolver.options.dynamictol
+		settings.linsolver.options.tol = update_tol(min(err),settings.linsolver.options);
+	end
+	% Print results of interation
 	if settings.verbose
 		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,mean(energy),mean(energy_prev - energy),max(err),laptime);
 	end
@@ -95,6 +167,10 @@ end
 for n = 1:N
 	[U,S,V] = svd(C{n},'econ');
 	A_left{n} = ncon({A_left{n},U},{[-1,2,-3],[2,-2]});
+	A_left{pbc(n+1)} = ncon({U',A_left{pbc(n+1)}},{[-1,1],[1,-2,-3]});
+	A_right{n} = ncon({A_right{n},V},{[-1,1,-3],[1,-2]});
 	A_right{pbc(n+1)} = ncon({V',A_right{pbc(n+1)}},{[-1,1],[1,-2,-3]});
 	C{n} = S;
 end
+end
+

@@ -44,7 +44,7 @@ for a = (chi-1):-1:1
 		end
 	end
 	% Load initial guess
-	if isstruct(settings) & isfield(settings.advice,'H_left.')
+	if isstruct(settings) & isfield(settings.advice,'H_left')
 		settings.linsolver.options.v0 = reshape(settings.advice.H_left(:,:,a),[D*D,1]);
 	end
 	% Compute new L_a
