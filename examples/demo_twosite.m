@@ -54,6 +54,6 @@ ylabel('$\lambda_k$')
 
 % Compare observables
 E = output.energy;
-mx = abs(trace(applyT(C'*C,A_left,sx,A_left,'r')));
-mz = abs(trace(applyT(C'*C,A_left,sz,A_left,'r')));
+mx = abs(trace(applyT(C'*C,A_right,sx,A_right,'l')));
+mz = abs(trace(applyT(C'*C,A_right,sz,A_right,'l')));
 fprintf('<H> error: %.4g, <X> error: %.4g, <Z> error: %.4g\n',abs(E - E_exact),abs(mx - mx_exact),abs(mz - mz_exact));

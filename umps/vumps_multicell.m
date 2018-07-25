@@ -5,10 +5,6 @@ if N == 1
 end
 pbc = @(n) mod(n+N-1,N) + 1;
 shift = @(C,n) circshift(C,-[0,n]);
-fixedblock = @fixedblock_m;
-applyHA = @applyHA_s;
-applyHC = @applyHC_g;
-applyH2s = @applyH2s_s;
 
 if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	% The initial conditions are provided
@@ -21,7 +17,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	A = cell(1,N);
 	% Compute error to update tolerances
 	for n = 1:N
-		err(n) = error_gauge_m(A{n},C{pbc(n-1)},C{n},A_left{n},A_right{n},'center');
+		err(n) = error_gauge([],A_left{n},A_right{n},C{pbc(n-1)},C{n});
 	end
 	% Update tolerances
 	if settings.eigsolver.options.dynamictol
@@ -41,7 +37,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 			B_right{pbc(-n)} = applyT(B_right{pbc(-n+1)},A_right{pbc(-n+1)},H{pbc(-n)},A_right{pbc(-n+1)},'r');
 		end
 		for n = 1:N
-			fapplyHC = @(M) applyHC(M,H{n},B_left{pbc(n+1)},B_right{pbc(n-1)},A_left{n},A_right{n});
+			fapplyHC = @(M) applyHC(M,[],B_left{pbc(n+1)},B_right{pbc(n-1)},[],[],settings.mode);
 			[Anew_left{n},Anew_right{n},Cnew{n}] = increasebond(D,A_left{n},A_right{pbc(n+1)},C{n},fapplyHC);
 		end
 		A_right = Anew_right;
@@ -60,7 +56,7 @@ else
 	A = cellfun(@(h) randn([D,D,d]) + 1i*randn([D,D,d]),H,'UniformOutput',false);
 	C = cellfun(@(h) diag(rand(1,D)),H,'UniformOutput',false);
 	for n = 1:N
-		[A_left{n},A_right{n}] = update_canonical_m(A{n},C{pbc(n-1)},C{n});
+		[A_left{n},A_right{n}] = update_canonical(A{n},C{pbc(n-1)},C{n});
 	end
 end
 % Define solvers
@@ -75,7 +71,7 @@ if nargout == 5
 end
 % Build left and right blocks
 for n = 1:N
-	err(n) = error_gauge_m(A{n},C{pbc(n-1)},C{n},A_left{n},A_right{n});
+	err(n) = error_gauge(A{n},A_left{n},A_right{n},C{pbc(n-1)},C{n});
 end
 % Update tolerances
 if settings.eigsolver.options.dynamictol
@@ -106,29 +102,29 @@ for iter = 1:settings.maxit
 	for n = 1:N
 		% Solve effective problem for A
 		settings.eigsolver.options.v0 = reshape(A{n},[D*D*d,1]);
-		applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H{n},B_left{n},B_right{n}),[D*D*d,1]);
+		applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H{n},B_left{n},B_right{n},[],[],settings.mode),[D*D*d,1]);
 		[Av,~] = eigsolver(applyHAv,D*D*d,1,settings.eigsolver.mode,settings.eigsolver.options);
 		A{n} = reshape(Av,[D,D,d]);
 		% Solve effective problem for C_left
 		B_mid = applyT(B_right{n},A_right{n},H{n},A_right{n},'r');
 		settings.eigsolver.options.v0 = reshape(C{pbc(n-1)},[D*D,1]);
-		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],B_left{n},B_mid),[D*D,1]);
+		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],B_left{n},B_mid,[],[],settings.mode),[D*D,1]);
 		[Cv,~] = eigsolver(applyHCv,D*D,1,settings.eigsolver.mode,settings.eigsolver.options);
 		Cv = Cv/sign(Cv(1));
 		C_left = reshape(Cv,[D,D]);
 		% Solve effective problem for C_right
 		B_mid = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
 		settings.eigsolver.options.v0 = reshape(C{n},[D*D,1]);
-		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],B_mid,B_right{n}),[D*D,1]);
+		applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),[],B_mid,B_right{n},[],[],settings.mode),[D*D,1]);
 		[Cv,~] = eigsolver(applyHCv,D*D,1,settings.eigsolver.mode,settings.eigsolver.options);
 		Cv = Cv/sign(Cv(1));
 		C_right = reshape(Cv,[D,D]);
 		% Update the canonical forms
-		[A_left{n},A_right{n}] = update_canonical_m(A{n},C_left,C_right);
+		[A_left{n},A_right{n}] = update_canonical(A{n},C_left,C_right);
 		C{pbc(n-1)} = C_left;
 		C{n} = C_right;
 		% Get error
-		err(n) = error_gauge_m(A{n},C_left,C_right,A_left{n},A_right{n});
+		err(n) = error_gauge(A{n},A_left{n},A_right{n},C_left,C_right);
 		% Update the next environment blocks
 		settings.advice.C = C{n};
 		settings.advice.B = B_left{pbc(n+1)};
