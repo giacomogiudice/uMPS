@@ -32,11 +32,17 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	end 
 	if D > size(A_left{1},1)
 		% Increase the bond dimension
+		B_left = cell(1,N);
+		B_right = cell(1,N);
+		B_left{1} = fixedblock(H,A_left,'l',settings);
+		B_right{N} = fixedblock(H,A_right,'r',settings);
+		for n = 1:(N-1)
+			B_left{n+1} = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
+			B_right{pbc(-n)} = applyT(B_right{pbc(-n+1)},A_right{pbc(-n+1)},H{pbc(-n)},A_right{pbc(-n+1)},'r');
+		end
 		for n = 1:N
-			[B_left,~] = fixedblock(shift(H,n-1),shift(A_left,n-1),'l',settings);
-			[B_right,~] = fixedblock(shift(H,n),shift(A_right,n),'r',settings);
-			fapplyHC = @(M) applyHC(M,H{n},B_left,B_right,A_left{n},A_right{n});
-			[Anew_left{n},Anew_right{n},Cnew{n}] = increasebond(D,A_left{n},A_right{n},C{n},fapplyHC);
+			fapplyHC = @(M) applyHC(M,H{n},B_left{pbc(n+1)},B_right{pbc(n-1)},A_left{n},A_right{n});
+			[Anew_left{n},Anew_right{n},Cnew{n}] = increasebond(D,A_left{n},A_right{pbc(n+1)},C{n},fapplyHC);
 		end
 		A_right = Anew_right;
 		A_left = Anew_left;
@@ -79,15 +85,16 @@ if settings.linsolver.options.dynamictol
 	settings.linsolver.options.tol = update_tol(min(err),settings.linsolver.options);
 end
 % Generate the environment blocks
-energy = zeros(1,N);
-energy_prev = zeros(1,N);
 B_left = cell(1,N);
 B_right = cell(1,N);
-for n = 1:N
-	[B_left{n},energy_left] = fixedblock(shift(H,n-1),shift(A_left,n-1),'l',settings);
-	[B_right{n},energy_right] = fixedblock(shift(H,n),shift(A_right,n),'r',settings);
-	energy_prev(n) = mean([energy_left,energy_right]);
+[B_left{1},energy_left] = fixedblock(H,A_left,'l',settings);
+[B_right{N},energy_right] = fixedblock(H,A_right,'r',settings);
+for n = 1:(N-1)
+	B_left{n+1} = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
+	B_right{pbc(-n)} = applyT(B_right{pbc(-n+1)},A_right{pbc(-n+1)},H{pbc(-n)},A_right{pbc(-n+1)},'r');
 end
+energy = zeros(1,N);
+energy_prev = mean([energy_left,energy_right])*ones(1,N);
 % Main VUMPS loop
 output.flag = 1;
 if settings.verbose
