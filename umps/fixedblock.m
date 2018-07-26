@@ -53,7 +53,7 @@ if direction == 'l'
 	% Compute right dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C*C',[D*D,1]);
+		eigsolver_options.v0 = reshape((C*C').',[D*D,1]);
 	end
 	fapplyTv = @(v) applyTv(v,A,1,A,'r');
 	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
@@ -99,7 +99,7 @@ elseif direction == 'r'
 	% Compute left dominant eigenvector of A
 	if isfield(settings.advice,'C')
 		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C*C',[D*D,1]);
+		eigsolver_options.v0 = reshape(C'*C,[D*D,1]);
 	end
 	fapplyTv = @(v) applyTv(v,A,1,A,'l');
 	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
@@ -160,7 +160,7 @@ if direction == 'l'
 	% Compute right dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C*C',[D*D,1]);
+		eigsolver_options.v0 = reshape((C*C').',[D*D,1]);
 	end
 	fapplyTv = @(v) applyTv(v,A,1,A,'r');
 	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
@@ -183,7 +183,7 @@ elseif direction == 'r'
 	% Compute left dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C*C',[D*D,1]);
+		eigsolver_options.v0 = reshape(C'*C,[D*D,1]);
 	end
 	fapplyTv = @(v) applyTv(v,A,1,A,'l');
 	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
@@ -226,7 +226,7 @@ if direction == 'l'
 	% Compute right dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C*C',[D*D,1]);
+		eigsolver_options.v0 = reshape((C*C').',[D*D,1]);
 	end
 	fapplyTv = @(v) applyTv(v,A,1,A,'r');
 	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
@@ -267,7 +267,7 @@ elseif direction == 'r'
 	% Compute left dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C*C',[D*D,1]);
+		eigsolver_options.v0 = reshape(C'*C,[D*D,1]);
 	end
 	fapplyTv = @(v) applyTv(v,A,1,A,'l');
 	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);

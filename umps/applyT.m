@@ -1,11 +1,14 @@
 function W = applyT(M,A_1,O,A_2,direction)
 if iscell(A_1)
-	W = applyT_m(M,A_1,O,A_2,direction);
-	return
+	W = applyT_multicell(M,A_1,O,A_2,direction);
 elseif iscell(O)
-	W = applyT_s(M,A_1,O,A_2,direction);
-	return
+	W = applyT_schur(M,A_1,O,A_2,direction);
+else
+	W = applyT_generic(M,A_1,O,A_2,direction);
 end
+end
+
+function W = applyT_generic(M,A_1,O,A_2,direction)
 if direction == 'l'
 	if isempty(O)
 		W = zeros([size(A_1,1),size(A_2,1)]);
@@ -31,25 +34,7 @@ else
 end
 end
 
-function M = applyT_m(M,A_1,O,A_2,direction)
-N = length(A_1);
-if ~iscell(O)
-	O = repmat({O},1,N);
-end
-if direction == 'l'
-	for n = 1:N
-		M = applyT(M,A_1{n},O{n},A_2{n},'l');
-	end
-elseif direction == 'r'
-	for n = N:(-1):1
-		M = applyT(M,A_1{n},O{n},A_2{n},'r');
-	end	
-else
-	error(['Unrecognized direction' direction]);
-end
-end
-
-function W = applyT_s(M,A_1,O,A_2,direction)
+function W = applyT_schur(M,A_1,O,A_2,direction)
 chi = size(O,1);
 W = zeros(size(M));
 if direction == 'l'
@@ -73,3 +58,20 @@ else
 end
 end
 
+function M = applyT_multicell(M,A_1,O,A_2,direction)
+N = length(A_1);
+if ~iscell(O)
+	O = repmat({O},1,N);
+end
+if direction == 'l'
+	for n = 1:N
+		M = applyT(M,A_1{n},O{n},A_2{n},'l');
+	end
+elseif direction == 'r'
+	for n = N:(-1):1
+		M = applyT(M,A_1{n},O{n},A_2{n},'r');
+	end	
+else
+	error(['Unrecognized direction' direction]);
+end
+end
