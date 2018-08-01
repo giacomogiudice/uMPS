@@ -60,9 +60,7 @@ if direction == 'l'
 	rho = rho/(id'*rho);
 	% Start from the corner
 	a = chi;
-	if H{a,a} ~= 1
-		error(['Element H{' num2str(a) ',' num2str(a) '} must be 1.']);
-	end
+	assert(H{a,a} == 1,'Element H{%d,%d} must be 1.',a,a);
 	B(:,a) = id;
 	for a = (chi-1):-1:1
 		% Compute new Y_a
@@ -72,23 +70,25 @@ if direction == 'l'
 				Y = Y + applyTv(B(:,b),A,H{b,a},A,'l');
 			end
 		end
-		% Load initial guess
-		if isfield(settings.advice,'B')
-			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
-		end
-		% Compute new L_a
-		if ~isempty(H{a,a}) & ~isscalar(H{a,a})
-			error(['Element H{' num2str(a) ',' num2str(a) '} is not a scalar.']);
-		elseif isempty(H{a,a}) || H{a,a} == 0
+		% Compute new B_a
+		if isempty(H{a,a})
 			B(:,a) = Y;
-		elseif H{a,a} == 1
-			applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
-			[B(:,a),~] = linsolver(applyM,Y - (rho.'*Y)*id,settings.linsolver.options);
-		elseif abs(H{a,a}) < 1
-			applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'l');
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		else
-			error(['Element H{' num2str(a) ',' num2str(a) '} has absolute value larger than 1.']);
+			assert(isscalar(H{a,a}),'Element H{%d,%d} is not a scalar.',a,a);
+			% Load initial guess
+			if isstruct(settings) & isfield(settings.advice,'B')
+				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+			end
+			if H{a,a} == 1
+				applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
+				b = Y - (rho.'*Y)*id;
+			elseif abs(H{a,a}) < 1
+				applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'l');
+				b = Y;
+			else
+				error('Diagonal element in H has absolute value larger than 1.');
+			end
+			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	B = reshape(B,[D,D,chi]); 
@@ -106,9 +106,7 @@ elseif direction == 'r'
 	rho = rho/(id'*rho);
 	% Start from the corner
 	a = 1;
-	if H{a,a} ~= 1
-		error(['Element H{' num2str(a) ',' num2str(a) '} must be 1.']);
-	end
+	assert(H{a,a} == 1,'Element H{%d,%d} must be 1.',a,a);
 	B(:,a) = id;
 	for a = 2:chi
 		% Compute new Y_a
@@ -118,27 +116,31 @@ elseif direction == 'r'
 				Y = Y + applyTv(B(:,b),A,H{a,b},A,'r');
 			end
 		end
-		% Load initial guess
-		if isstruct(settings) & isfield(settings.advice,'B')
-			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
-		end
-		% Compute new R_a 
-		if ~isempty(H{a,a}) & ~isscalar(H{a,a})
-			error(['Element H{' num2str(a) ',' num2str(a) '} is not a scalar.']);
-		elseif isempty(H{a,a}) || H{a,a} == 0
+		% Compute new B_a
+		if isempty(H{a,a})
 			B(:,a) = Y;
-		elseif H{a,a} == 1
-			applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
-			[B(:,a)] = linsolver(applyM,Y - (rho.'*Y)*id,settings.linsolver.options);
-		elseif abs(H{a,a}) < 1
-			applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'r');
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		else
-			error(['Element H{' num2str(a) ',' num2str(a) '} has absolute value larger than 1.']);
+			assert(isscalar(H{a,a}),'Element H{%d,%d} is not a scalar.',a,a);
+			% Load initial guess
+			if isstruct(settings) & isfield(settings.advice,'B')
+				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+			end
+			if H{a,a} == 1
+				applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
+				b = Y - (rho.'*Y)*id;
+			elseif abs(H{a,a}) < 1
+				applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'r');
+				b = Y;
+			else
+				error('Diagonal element in H has absolute value larger than 1.');
+			end
+			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	E = real(Y.'*rho);
 	B = reshape(B,[D,D,chi]);
+else
+	error(['Unrecognized direction' direction '.']);
 end
 end
 
@@ -201,6 +203,8 @@ elseif direction == 'r'
 	[B,~] = linsolver(applyM,b,settings.linsolver.options);
 	B = reshape(B,[D,D]);
 	E = real(rho.'*h);
+else
+	error(['Unrecognized direction' direction '.']);
 end
 end
 
@@ -221,8 +225,9 @@ eigsolver_options.isreal = settings.isreal;
 eigsolver_mode = 'lm';
 eigsolver_options.issym = false;
 
+Hall = combineMPO(H);
+
 if direction == 'l'
-	% Calculate left block
 	% Compute right dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
@@ -233,37 +238,43 @@ if direction == 'l'
 	rho = rho/(id'*rho);
 	% Start from the corner
 	a = chi;
-	if ~all(cellfun(@(h) h{a,a} == 1,H))
-		error('One or more element in H is not 1.');
-	end
+	assert(all(cellfun(@(h) h == 1,Hall{a,a})),'All {%d,%d} H must be 1.',a,a);
 	B(:,a) = id;
 	for a = (chi-1):-1:1
 		% Compute new Y_a
-		Y = applyT(reshape(B,[D,D,chi]),A,H,A,'l');
-		Y = reshape(Y(:,:,a),[D^2,1]);
-		% Load initial guess
-		if isstruct(settings) & isfield(settings.advice,'B')
-			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+		Y = zeros([D^2,1]);
+		for b = chi:-1:a
+			if ~isempty(Hall{b,a})
+				for s = 1:size(Hall{b,a},1)
+					Y = Y + applyTv(B(:,b),A,Hall{b,a}(s,:),A,'l');
+				end
+			end
 		end
-		% Compute new L_a
-		if ~all(cellfun(@(h) isempty(h{a,a}) || isscalar(h{a,a}),H))
-			error('One or more diagonal elements in H are not scalar.');
-		elseif any(cellfun(@(h) isempty(h{a,a}),H))
+		% Compute new B_a
+		Hdiag = Hall{a,a}; 
+		if isempty(Hdiag)
 			B(:,a) = Y;
-		elseif all(cellfun(@(h) h{a,a} == 1,H))
-			applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
-			[B(:,a),~] = linsolver(applyM,Y - (rho.'*Y)*id,settings.linsolver.options);
-		elseif all(cellfun(@(h) h{a,a} < 1,H))
-			applyM = @(x) x - prod(cellfun(@(h) h{a,a},H))*applyTv(x,A,1,A,'l');
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		else
-			error('One or more element in H have absolute value larger than 1.');
+			assert(all(cellfun(@(h) isscalar(h),Hdiag)),'One or more diagonal elements in H are not scalar.');
+			% Load initial guess
+			if isstruct(settings) & isfield(settings.advice,'B')
+				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+			end
+			if all(cellfun(@(h) h == 1,Hdiag))
+				applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
+				b = Y - (rho.'*Y)*id;
+			elseif all(cellfun(@(h) h < 1,Hdiag))
+				applyM = @(x) x - prod(cell2mat(Hdiag))*applyTv(x,A,1,A,'l');
+				b = Y;
+			else
+				error('One or more element in H have absolute value larger than 1.');
+			end
+			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	B = reshape(B,[D,D,chi]);
 	E = real(Y.'*rho)/N;
 elseif direction == 'r'
-	% Calculate B block
 	% Compute left dominant eigenvector of A
 	if isstruct(settings) & isfield(settings.advice,'C')
 		C = settings.advice.C;
@@ -274,35 +285,44 @@ elseif direction == 'r'
 	rho = rho/(id'*rho);
 	% Start from the corner
 	a = 1;
-	if ~all(cellfun(@(h) h{a,a} == 1,H))
-		error('One or more element in H is not 1.');
-	end
+	assert(all(cellfun(@(h) h == 1,Hall{a,a})),'All {%d,%d} H must be 1.',a,a);
 	B(:,a) = id;
 	for a = 2:chi
 		% Compute new Y_a
-		Y = applyT(reshape(B,[D,D,chi]),A,H,A,'r');
-		Y = reshape(Y(:,:,a),[D^2,1]);
-		% Load initial guess
-		if isstruct(settings) & isfield(settings.advice,'B')
-			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+		Y = zeros([D^2,1]);
+		for b = 1:(a-1)
+			if ~isempty(Hall{a,b})
+				for s = 1:size(Hall{a,b},1)
+					Y = Y + applyTv(B(:,b),A,Hall{a,b}(s,:),A,'r');
+				end
+			end
 		end
-		% Compute new R_a 
-		if ~all(cellfun(@(h) isempty(h{a,a}) || isscalar(h{a,a}),H))
-			error('One or more diagonal elements in H are not scalar.')
-		elseif any(cellfun(@(h) isempty(h{a,a}),H))
+		% Compute new B_a
+		Hdiag = Hall{a,a}; 
+		if isempty(Hdiag)
 			B(:,a) = Y;
-		elseif all(cellfun(@(h) h{a,a} == 1,H))
-			applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
-			[B(:,a)] = linsolver(applyM,Y - (rho.'*Y)*id,settings.linsolver.options);
-		elseif all(cellfun(@(h) h{a,a} < 1,H))
-			applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'r');
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		else
-			error('One or more element in H have absolute value larger than 1.');
+			assert(all(cellfun(@(h) isscalar(h),Hdiag)),'One or more diagonal elements in H are not scalar.');
+			% Load initial guess
+			if isstruct(settings) & isfield(settings.advice,'B')
+				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+			end
+			if all(cellfun(@(h) h == 1,Hdiag))
+				applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
+				b = Y - (rho.'*Y)*id;
+			elseif all(cellfun(@(h) abs(h) < 1,Hdiag))
+				applyM = @(x) x - prod(cell2mat(Hdiag))*applyTv(x,A,1,A,'r');
+				b = Y;
+			else
+				error('One or more element in H have absolute value larger than 1.');
+			end
+			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	B = reshape(B,[D,D,chi]);
 	E = real(Y.'*rho)/N;
+else
+	error(['Unrecognized direction' direction '.']);
 end
 end
  

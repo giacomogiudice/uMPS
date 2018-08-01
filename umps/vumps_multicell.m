@@ -16,6 +16,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	assert(all(cellfun(@(Al,Ac) isequal([size(Al,1),size(Al,1)],size(Ac)),A_left,C)),'Size mismatch between canonical forms and central tensor');
 	A = cell(1,N);
 	% Compute error to update tolerances
+	err = zeros(1,N);
 	for n = 1:N
 		err(n) = error_gauge([],A_left{n},A_right{n},C{pbc(n-1)},C{n});
 	end
