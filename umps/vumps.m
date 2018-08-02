@@ -139,9 +139,7 @@ end
 output.iter = iter;
 output.err = err;
 output.energy = energy;
-fapplyHA = @(M) applyHA(M,H,B_left,B_right,A_left,A_right,settings.mode);
-fapplyH2s = @(M) applyH2s(M,H,B_left,B_right,settings.mode);
-output.energyvariance = error_variance(A_left,A_right,C,fapplyHA,fapplyH2s);
+output.energyvariance = error_variance(A_left,C,A_right,H,B_left,B_right);
 if savestats
 	stats.err = stats.err(1:iter);
 	stats.energy = stats.energy(1:iter);

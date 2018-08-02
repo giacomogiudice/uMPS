@@ -32,10 +32,11 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 		B_left = cell(1,N);
 		B_right = cell(1,N);
 		B_left{1} = fixedblock(H,A_left,'l',settings);
-		B_right{N} = fixedblock(H,A_right,'r',settings);
+		B_right{1} = fixedblock(shift(H,1),shift(A_right,1),'r',settings);
 		for n = 1:(N-1)
+			m = pbc(-n+2);
 			B_left{n+1} = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
-			B_right{pbc(-n)} = applyT(B_right{pbc(-n+1)},A_right{pbc(-n+1)},H{pbc(-n)},A_right{pbc(-n+1)},'r');
+			B_right{pbc(m-1)} = applyT(B_right{m},A_right{m},H{m},A_right{m},'r');
 		end
 		for n = 1:N
 			fapplyHC = @(M) applyHC(M,[],B_left{pbc(n+1)},B_right{pbc(n-1)},[],[],settings.mode);
@@ -45,7 +46,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 		A_left = Anew_left;
 		C = Cnew;
 	elseif D < size(A_left,1)
-		error('Bond dimension provided is smaller than initial conditions');
+		error('Bond dimension provided is smaller than initial conditions.');
 	end
 	for n = 1:N
 		A{n} = ncon({A_left{n},C{n}},{[-1,1,-3],[1,-2]});
@@ -85,10 +86,11 @@ end
 B_left = cell(1,N);
 B_right = cell(1,N);
 [B_left{1},energy_left] = fixedblock(H,A_left,'l',settings);
-[B_right{N},energy_right] = fixedblock(H,A_right,'r',settings);
+[B_right{1},energy_right] = fixedblock(shift(H,1),shift(A_right,1),'r',settings);
 for n = 1:(N-1)
+	m = pbc(-n+2);
 	B_left{n+1} = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
-	B_right{pbc(-n)} = applyT(B_right{pbc(-n+1)},A_right{pbc(-n+1)},H{pbc(-n)},A_right{pbc(-n+1)},'r');
+	B_right{pbc(m-1)} = applyT(B_right{m},A_right{m},H{m},A_right{m},'r');
 end
 energy = zeros(1,N);
 energy_prev = mean([energy_left,energy_right])*ones(1,N);
@@ -158,10 +160,23 @@ for iter = 1:settings.maxit
 	end
 	energy_prev = energy;
 end
+% Update blocks
+for n = 1:(N-1)
+	m = pbc(-n+2);
+	B_left{n+1} = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
+	B_right{pbc(m-1)} = applyT(B_right{m},A_right{m},H{m},A_right{m},'r');
+end
+% Compute estimate of variance
+g = zeros(1,N);
+for n = 1:N
+	g(n) = error_variance(A_left{n},C{n},A_right{pbc(n+1)},{H{n},H{pbc(n+1)}},B_left{n},B_right{pbc(n+1)});
+end
 % Set output information
 output.energy = mean(energy);
 output.iter = iter;
 output.err = max(err);
+output.energyvariance = mean(g);
+
 if savestats
 	stats.err = stats.err(1:iter);
 	stats.energy = stats.energy(1:iter);
