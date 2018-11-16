@@ -43,8 +43,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 		% Increase the bond dimension
 		B_left = fixedblock(H,A_left,'l',settings);
 		B_right = fixedblock(H,A_right,'r',settings);
-		fapplyHC = @(M) applyHC(M,H,B_left,B_right,A_left,A_right,settings.mode);
-		[A_left,A_right,C] = increasebond(D,A_left,A_right,C,fapplyHC);
+		[A_left,A_right,C] = increasebond(D,A_left,A_right,C,H,B_left,B_right);
 		A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 	elseif D < size(A_left,1)
 		error('Bond dimension provided is smaller than initial conditions');

@@ -40,7 +40,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 		end
 		for n = 1:N
 			fapplyHC = @(M) applyHC(M,[],B_left{pbc(n+1)},B_right{pbc(n-1)},[],[],settings.mode);
-			[Anew_left{n},Anew_right{n},Cnew{n}] = increasebond(D,A_left{n},A_right{pbc(n+1)},C{n},fapplyHC);
+			[Anew_left{n},Anew_right{n},Cnew{n}] = increasebond(D,A_left{n},A_right{pbc(n+1)},C{n},H{n},B_left{pbc(n+1)},B_right{pbc(n-1)});
 		end
 		A_right = Anew_right;
 		A_left = Anew_left;
