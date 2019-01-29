@@ -4,7 +4,7 @@ sy = [0,-1i;1i,0];
 sz = [1,0;0,-1];
 si = eye(2);
 % Define Ising 2-body Hamiltonian term
-h = 0.6;
+h = 0.8;
 H_twosite = -ncon({sz,sz},{[-1,-3],[-2,-4]}) - h/2*(ncon({sx,si},{[-1,-3],[-2,-4]}) + ncon({si,sx},{[-1,-3],[-2,-4]}));
 % Exact energy
 flambda = @(k) sqrt(h^2 + 2*h*cos(k) + 1);
@@ -20,8 +20,8 @@ mx_exact = integral(@(k) (1/pi)*((h + cos(k))./flambda(k)),0,pi,'RelTol',eps);
 D = 15;
 d = 2;
 settings.mode = 'twosite';
-settings.maxit = 20;
-settings.tol = eps;
+settings.maxit = 10;
+settings.tol = 1e-10;
 % For small bond dimensions, dynamic precision can be disabled for faster convergence
 % However, one should make sure that these tolerances are not smaller than settings.tol
 settings.eigsolver.options.dynamictol = false;
@@ -32,7 +32,7 @@ if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.C = C;
 end
 % Launch VUMPS simulation
-[A_left,A_right,C,output,stats] = vumps(H_twosite,D,d,settings);
+[A_left,A_right,C,~,output,~,stats] = vumps(H_twosite,D,d,settings);
 output
 
 % Plot results

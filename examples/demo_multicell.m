@@ -3,7 +3,7 @@ sx = 1/2*[0,1;1,0];
 sy = 1/2*[0,-1i;1i,0];
 sz = 1/2*[1,0;0,-1];
 % Choose model to simulate
-model = 'ising'
+model = 'xxz'
 if isequal(model,'ising')
 	% Transverse field
 	h = 0.6;
@@ -40,23 +40,21 @@ elseif isequal(model,'xxz')
 		E_exact = Delta/4 - sin(gamma)*integral(@(x)(1-tanh(x*gamma)./tanh(x*pi)),0,inf,'RelTol',eps);
 	end
 end
-H = {W,W};
+H = {W,W,W,W};
 
 % Define parameters for VUMPS simulation
-D = 10;
+D = 9;
 d = 2;
 settings.mode = 'multicell';
-settings.maxit = 10;
-settings.tol = 1e-12;
+settings.maxit = 20;
+settings.tol = 1e-8;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
 	settings.initial.A_right = A_right;
 	settings.initial.C = C;
 end
-settings.eigsolver.options.dynamictol = false;
-settings.eigsolver.options.dynamictol = false;
 % Launch VUMPS simulation
-[A_left,A_right,C,output,stats] = vumps(H,D,d,settings);
+[~,~,C,~,output,~,stats] = vumps(H,D,d,settings);
 output
 
 % Plot results

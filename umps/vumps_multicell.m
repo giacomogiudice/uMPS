@@ -1,4 +1,4 @@
-function [A_left,A_right,C,output,stats] = vumps_multicell(H,D,d,settings)
+function [A_left,A_right,C,A,output,blocks,stats] = vumps_multicell(H,D,d,settings)
 N = length(H);
 if N == 1
 	warning('VUMPS:vumps_multicell:singlecell','multicell version is suboptimal for a single site unit cell.');
@@ -65,7 +65,8 @@ end
 eigsolver = settings.eigsolver.handle;
 % Initialize stats log
 stats = struct;
-if nargout == 5
+savestats = false;
+if nargout >= 6
 	savestats = true;
 	stats.err = zeros(1,settings.maxit);
 	stats.energy = zeros(1,settings.maxit);
@@ -189,7 +190,21 @@ for n = 1:N
 	A_left{pbc(n+1)} = ncon({U',A_left{pbc(n+1)}},{[-1,1],[1,-2,-3]});
 	A_right{n} = ncon({A_right{n},V},{[-1,1,-3],[1,-2]});
 	A_right{pbc(n+1)} = ncon({V',A_right{pbc(n+1)}},{[-1,1],[1,-2,-3]});
+	A{n} = ncon({A{n},V},{[-1,1,-3],[1,-2]});
+	A{pbc(n+1)} = ncon({U',A{pbc(n+1)}},{[-1,1],[1,-2,-3]});
 	C{n} = S;
+end
+% Store other extra
+if nargout >= 5
+	B_left{1} = fixedblock(H,A_left,'l',settings);
+	B_right{1} = fixedblock(shift(H,1),shift(A_right,1),'r',settings);
+	for n = 1:(N-1)
+		m = pbc(-n+2);
+		B_left{n+1} = applyT(B_left{n},A_left{n},H{n},A_left{n},'l');
+		B_right{pbc(m-1)} = applyT(B_right{m},A_right{m},H{m},A_right{m},'r');
+	end
+	blocks.left = B_left;
+	blocks.right = B_right;
 end
 end
 

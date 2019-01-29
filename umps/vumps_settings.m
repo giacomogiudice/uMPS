@@ -32,10 +32,10 @@ if nargin == 1
 	settings = mergestruct(settings,custom_settings);
 end
 % Update eigsolver settings for real matrices
-if settings.isreal 
+if settings.isreal
 	settings.eigsolver.options.isreal = true;
-	settings.eigsolver.mode = 'sa';
 end
+
 % Do some minimal checks
 assert(mod(settings.maxit,1) == 0,'%s must be an integer.','settings.maxit');
 assert(settings.tol <= 1 & settings.tol >= 0,'%s must be between 0 and 1.','settings.tol');

@@ -39,10 +39,10 @@ elseif isequal(model,'xxz')
 end
 
 % Define parameters for VUMPS simulation
-D = 15;
+D = 20;
 d = 2;
 settings.mode = 'schur';
-settings.maxit = 20;
+settings.maxit = 12;
 settings.tol = 1e-12;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
@@ -50,7 +50,7 @@ if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.C = C;
 end
 % Launch VUMPS simulation
-[A_left,A_right,C,output,stats] = vumps(W,D,d,settings);
+[A_left,A_right,C,A,output,~,stats] = vumps(W,D,d,settings);
 output
 E = output.energy;
 

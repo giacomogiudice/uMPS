@@ -1,4 +1,4 @@
-function [A_left,A_right,C,output,stats] = vumps(H,D,d,settings)
+function [A_left,A_right,C,A,output,blocks,stats] = vumps(H,D,d,settings)
 % Parse settings
 if nargin == 3
 	settings = vumps_settings();
@@ -16,7 +16,7 @@ elseif isequal(settings.mode,'generic')
 elseif isequal(settings.mode,'twosite')
 	assert(isequal(size(H),[d,d,d,d]),'Input operator should be a rank-4 tensor.');
 elseif isequal(settings.mode,'multicell')
-	[A_left,A_right,C,output,stats] = vumps_multicell(H,D,d,settings);
+	 [A_left,A_right,C,A,output,blocks,stats] = vumps_multicell(H,D,d,settings);
 	return
 else
 	error(['Unrecognized mode' settings.mode])
@@ -63,7 +63,7 @@ eigsolver = settings.eigsolver.handle;
 % Initialize stats log
 stats = struct;
 savestats = false;
-if nargout == 5
+if nargout >= 6
 	savestats = true;
 	stats.err = zeros(1,settings.maxit);
 	stats.energy = zeros(1,settings.maxit);
@@ -88,6 +88,7 @@ if settings.verbose
 	fprintf('Iter\t      Energy\t Energy Diff\t Gauge Error\tLap Time [s]\n')
 	fprintf('   0\t%12g\n',energy_prev);
 end
+
 for iter = 1:settings.maxit
 	tic
 	% Solve effective problem for A
@@ -109,6 +110,14 @@ for iter = 1:settings.maxit
 	settings.advice.B = B_right;
 	[B_right,energy_right] = fixedblock(H,A_right,'r',settings);
 	energy = mean([energy_left,energy_right]);
+	% Fix normalization in case of generic MPO
+	if strcmp(settings.mode,'generic')
+		% nrm = ncon({B_left,conj(C),C,B_right},{[1,2,5],[1,3],[2,4],[3,4,5]});
+		nrm = ncon({B_left,B_right},{[1,2,3],[1,2,3]});
+		B_left = B_left/sqrt(nrm);
+		B_right = B_right/sqrt(nrm);
+		energy = real(energy);
+	end
 	% Update tolerances
 	if settings.eigsolver.options.dynamictol
 		settings.eigsolver.options.tol = update_tol(err,settings.eigsolver.options);
@@ -121,6 +130,7 @@ for iter = 1:settings.maxit
 	err = error_gauge(A,A_left,A_right,C);
 	% Print results of interation
 	if settings.verbose
+		%abs([energy_left energy_right])
 		fprintf('%4d\t%12g\t%12g\t%12g%12.1f\n',iter,energy,energy_prev - energy,err,laptime);
 	end
 	if savestats
@@ -128,7 +138,7 @@ for iter = 1:settings.maxit
 		stats.energy(iter) = energy;
 		stats.energydiff(iter) = energy_prev - energy;
 	end
-	if err < settings.tol
+	if err < settings.tol || abs(energy_prev - energy) < eps
 		output.flag = 0;
 		break
 	end
@@ -139,6 +149,7 @@ output.iter = iter;
 output.err = err;
 output.energy = energy;
 output.energyvariance = error_variance(A_left,C,A_right,H,B_left,B_right);
+% output.energyvariance = 'fix variance'
 if savestats
 	stats.err = stats.err(1:iter);
 	stats.energy = stats.energy(1:iter);
@@ -148,5 +159,11 @@ end
 [U,S,V] = svd(C,'econ');
 A_left = ncon({U',A_left,U},{[-1,1],[1,2,-3],[2,-2]});
 A_right = ncon({V',A_right,V},{[-1,1],[1,2,-3],[2,-2]});
+A = ncon({U',A,V},{[-1,1],[1,2,-3],[2,-2]});
 C = S;
+
+if nargout >= 5
+	blocks.left =  fixedblock(H,A_left,'l',settings);
+	blocks.right = fixedblock(H,A_right,'r',settings);
+end
 end
