@@ -1,10 +1,16 @@
 function A_new = applyHA(A,H,B_left,B_right,A_left,A_right,mode)
 if strcmp(mode,'generic')
 	A_new = applyHA_generic(A,H,B_left,B_right);
-elseif strcmp(mode,'schur') | strcmp(mode,'multicell')
+elseif strcmp(mode,'schur')
 	A_new = applyHA_schur(A,H,B_left,B_right);
 elseif strcmp(mode,'twosite')
 	A_new = applyHA_twosite(A,H,B_left,B_right,A_left,A_right);
+elseif strcmp(mode,'multicell')
+	if iscell(H)
+		A_new = applyHA_schur(A,H,B_left,B_right);
+	else
+		A_new = applyHA_generic(A,H,B_left,B_right);
+	end
 else
 	error(['Unrecognized mode ' mode '.']);
 end

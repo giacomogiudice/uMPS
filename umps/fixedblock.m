@@ -20,15 +20,19 @@ eigsolver_options.isreal = settings.isreal;
 eigsolver_mode = 'lm';
 eigsolver_options.issym = false;
 
+if isfield(settings.advice,'B')
+	eigsolver_options.v0 = reshape(settings.advice.B,[D*D*chi,1]);
+end
+
 if direction == 'l'
 	% Compute right dominant eigenvector
 	fapplyTv = @(v) applyTv(v,A,H,A,'l');
-	[B,E] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
+	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
 	B = reshape(B,[D,D,chi]);
 elseif direction == 'r'
 	% Compute right dominant eigenvector
 	fapplyTv = @(v) applyTv(v,A,H,A,'r');
-	[B,E] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
+	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
 	B = reshape(B,[D,D,chi]);
 end
 end
@@ -88,7 +92,7 @@ if direction == 'l'
 			else
 				error('Diagonal element in H has absolute value larger than 1.');
 			end
-			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
+			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	B = reshape(B,[D,D,chi]); 
@@ -134,7 +138,7 @@ elseif direction == 'r'
 			else
 				error('Diagonal element in H has absolute value larger than 1.');
 			end
-			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
+			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	E = real(Y.'*rho);
@@ -209,6 +213,10 @@ end
 end
 
 function [B,E] = fixedblock_multicell(H,A,direction,settings)
+if ~iscell(H{1})
+	[B,E] = fixedblock_multicell_generic(H,A,direction,settings);
+	return
+end
 N = length(H);
 assert(isequal(size(H),size(A)),'Size mismatch in input cell arrays.');
 chi = size(H{1},1);
@@ -269,7 +277,7 @@ if direction == 'l'
 			else
 				error('One or more element in H have absolute value larger than 1.');
 			end
-			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
+			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	B = reshape(B,[D,D,chi]);
@@ -316,13 +324,77 @@ elseif direction == 'r'
 			else
 				error('One or more element in H have absolute value larger than 1.');
 			end
-			B(:,a) = linsolver(applyM,Y,settings.linsolver.options);
+			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
 		end
 	end
 	B = reshape(B,[D,D,chi]);
 	E = real(Y.'*rho)/N;
 else
 	error(['Unrecognized direction' direction '.']);
+end
+end
+
+
+function [B,E] = fixedblock_multicell_generic(H,A,direction,settings)
+H
+N = length(H);
+chi = size(H{1},1);
+[D,~,d] = size(A{1});
+id = reshape(eye([D,D]),[D*D,1]);
+B = zeros([D*D,chi]);
+% Shortcuts to solvers
+tol = max(eps,settings.linsolver.options.tol);
+maxit = min(D*D,settings.linsolver.options.maxit);
+settings.linsolver.options.v0 = [];
+linsolver = settings.linsolver.handle;
+eigsolver = settings.eigsolver.handle;
+eigsolver_options.isreal = settings.isreal;
+eigsolver_mode = 'lm';
+eigsolver_options.issym = false;
+
+if direction == 'l'
+	if isstruct(settings) & isfield(settings.advice,'H_left')
+		eigsolver_options.v0 = reshape(settings.advice.H_left,[D*D*chi,1]);
+	end
+	% Compute right dominant eigenvector
+	fapplyTv = @(v) applyTvNtimes(v,A,H,A,'l');
+	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
+	E = E/N;
+	B = reshape(B,[D,D,chi]);
+elseif direction == 'r'
+	if isstruct(settings) & isfield(settings.advice,'H_right')
+			eigsolver_options.v0 = reshape(settings.advice.H_right,[D*D*chi,1]);
+	end
+	% Compute right dominant eigenvector
+	fapplyTv = @(v) applyTvNtimes(v,A,H,A,'r');
+	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
+	E = E/N;
+	B = reshape(B,[D,D,chi]);
+else
+	error(['Unrecognized direction' direction '.']);
+end
+end
+function v = applyTNtimes(M,A1,H,A2,direction)
+N = length(A1);
+if direction == 'l'
+	ind = 1:N;
+elseif direction == 'r'
+	ind = N:(-1):1;
+end
+for n = ind
+	v = applyT(M,A1{n},H{n},A2{n},direction);
+end
+end
+
+function v = applyTvNtimes(v,A1,H,A2,direction)
+N = length(A1);
+if direction == 'l'
+	ind = 1:N;
+elseif direction == 'r'
+	ind = N:(-1):1;
+end
+for n = ind
+	v = applyTv(v,A1{n},H{n},A2{n},direction);
 end
 end
  

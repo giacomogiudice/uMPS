@@ -17,7 +17,7 @@ if direction == 'l'
 	elseif ndims(M) == 2
 		W = ncon({M,conj(A_1),O,A_2},{[1,4],[1,-1,2],[2,3],[4,-2,3]});
 	else
-		W = ncon({M,conj(A_1),O,A_2},{[1,3,5],[1,-1,2],[3,-3,2,4],[5,-2,4]});
+		W = ncon({M,conj(A_1),O,A_2},{[1,5,3],[1,-1,2],[3,-3,2,4],[5,-2,4]});
 	end
 elseif direction == 'r'
 	if isempty(O)
@@ -27,7 +27,7 @@ elseif direction == 'r'
 	elseif ndims(M) == 2
 		W = ncon({M,conj(A_1),O,A_2},{[1,4],[-1,1,2],[2,3],[-2,4,3]});
 	else
-		W = ncon({M,conj(A_1),O,A_2},{[1,3,5],[-1,1,2],[-3,3,2,4],[-2,5,4]});
+		W = ncon({M,conj(A_1),O,A_2},{[1,5,3],[-1,1,2],[-3,3,2,4],[-2,5,4]});
 	end
 else
 	error(['Unrecognized direction' direction '.']);
@@ -36,8 +36,8 @@ end
 
 function W = applyT_schur(M,A_1,O,A_2,direction)
 chi = size(O,1);
-W = zeros(size(M));
 if direction == 'l'
+	W = zeros([size(A_1,2),size(A_2,2),size(O,2)]);
 	for a = chi:-1:1
 		for b = chi:-1:a
 			if ~isempty(O{b,a})
@@ -46,6 +46,7 @@ if direction == 'l'
 		end
 	end
 elseif direction == 'r'
+	W = zeros([size(A_1,1),size(A_2,1),size(O,1)]);
 	for a = 1:chi
 		for b = 1:a
 			if ~isempty(O{a,b})

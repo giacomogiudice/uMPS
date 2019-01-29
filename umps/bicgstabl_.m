@@ -1,3 +1,3 @@
-function [x,flag,relres,iter,resvec] = bicgstabl_(Afun,b,options)
-	[x,flag,relres,iter,resvec] = bicgstabl(Afun,b,options.tol,options.maxit,[],[],options.v0);
+function varargout = bicgstabl_(Afun,b,options)
+	[varargout{1:nargout}] = bicgstabl(Afun,b,options.tol,options.maxit,[],[],options.v0);
 end

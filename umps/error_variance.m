@@ -1,10 +1,10 @@
 function g = error_variance(A_left,C,A_right,H,B_left,B_right)
 % Approximates the energy variance <(H - E)^2> using the two-site variance
 % as explained in arXiv:1711.01104.
-if ~iscell(H)
+if ~iscell(H) && ndims(B_left) == 2
 	g = error_variance_twosite(A_left,C,A_right,H,B_left,B_right);
 	return
-elseif iscell(H{1,1})
+elseif iscell(H) & iscell(H{1,1})
 	B_mid = applyT(B_right,A_right,H{2},A_right,'r');
 else
 	H = {H,H};
