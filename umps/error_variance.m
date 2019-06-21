@@ -22,7 +22,7 @@ G_right = applyT(B_right,N_right,H{2},A_right,'r');
 P1 = ncon({G_left,B_mid},{[-1,1,2],[-2,1,2]});
 % Second projector
 P2 = ncon({G_left,G_right},{[-1,1,2],[-2,1,2]});
-g = trace(P1*P1') + trace(P2*P2');
+g = P1(:)'*P1(:) + P2(:)'*P2(:);
 end
 
 function g = error_variance_twosite(A_left,C,A_right,H,B_left,B_right)
@@ -39,6 +39,6 @@ A2s_prime = ncon({A2s,H},{[-1,1,2,-4],[-2,-3,1,2]});
 A2s_prime = A2s_prime + ncon({B_left,A2s},{[-1,1],[1,-2,-3,-4]});
 A2s_prime = A2s_prime + ncon({A2s,B_right},{[-1,-2,-3,1],[1,-4]});
 P2 = ncon({conj(N_left),A2s_prime,conj(N_right)},{[1,-1,2],[1,2,4,3],[-2,3,4]});
-g = trace(P1*P1') + trace(P2*P2');
+g = P1(:)'*P1(:) + P2(:)'*P2(:);
 end
 

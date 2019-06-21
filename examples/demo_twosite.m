@@ -17,11 +17,11 @@ end
 mx_exact = integral(@(k) (1/pi)*((h + cos(k))./flambda(k)),0,pi,'RelTol',eps);
 
 % Define parameters for VUMPS simulation
-D = 15;
+D = 16;
 d = 2;
 settings.mode = 'twosite';
 settings.maxit = 10;
-settings.tol = 1e-10;
+settings.tol = eps;
 % For small bond dimensions, dynamic precision can be disabled for faster convergence
 % However, one should make sure that these tolerances are not smaller than settings.tol
 settings.eigsolver.options.dynamictol = false;

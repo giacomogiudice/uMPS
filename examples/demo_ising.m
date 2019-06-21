@@ -23,7 +23,7 @@ D = 16;
 settings.mode = 'generic';
 settings.eigsolver.mode = 'lm';
 settings.maxit = 20;
-settings.tol = 1e-9;
+settings.tol = eps;
 settings.isreal = true;
 % Launch VUMPS simulation
 [A_left,A_right,C,A,output,B] = vumps(T,D,d,settings);

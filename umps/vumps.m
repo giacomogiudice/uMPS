@@ -112,10 +112,9 @@ for iter = 1:settings.maxit
 	energy = mean([energy_left,energy_right]);
 	% Fix normalization in case of generic MPO
 	if strcmp(settings.mode,'generic')
-		% nrm = ncon({B_left,conj(C),C,B_right},{[1,2,5],[1,3],[2,4],[3,4,5]});
-		nrm = ncon({B_left,B_right},{[1,2,3],[1,2,3]});
-		B_left = B_left/sqrt(nrm);
-		B_right = B_right/sqrt(nrm);
+		B_norm = sqrt(abs(ncon({B_left,B_right},{[1,2,3],[1,2,3]})));
+		B_left = B_left/B_norm;
+		B_right = B_right/B_norm;
 		energy = real(energy);
 	end
 	% Update tolerances

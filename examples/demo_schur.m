@@ -42,8 +42,8 @@ end
 D = 20;
 d = 2;
 settings.mode = 'schur';
-settings.maxit = 12;
-settings.tol = 1e-12;
+settings.maxit = 20;
+settings.tol = eps;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
 	settings.initial.A_right = A_right;

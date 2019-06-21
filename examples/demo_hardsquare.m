@@ -9,7 +9,7 @@ X(1,1,1,1) = 1;
 X(2,2,2,2) = 1;
 T = ncon({G,X,G},{[1,-2],[1,-1,2,-3],[2,-4]});
 
-% Exact solution of the partition function by Baxter
+% Numerical solution of the partition function by Baxter
 E_exact = 1.503048082475332264322066329475553689385781;
 
 % Define parameters for VUMPS simulation

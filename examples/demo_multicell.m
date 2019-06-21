@@ -47,7 +47,7 @@ D = 9;
 d = 2;
 settings.mode = 'multicell';
 settings.maxit = 20;
-settings.tol = 1e-8;
+settings.tol = 1e-12;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
 	settings.initial.A_right = A_right;
