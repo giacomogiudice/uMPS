@@ -9,9 +9,18 @@ C_new = zeros(D_new,D_new);
 N_left = nullspace(A_left,'l');
 N_right = nullspace(A_right,'r');
 % Compute SVD and truncate
-M_left = applyT(B_left,N_left,H,A_left,'l');
-M_right = applyT(B_right,N_right,H,A_right,'r');
-M = ncon({M_left,C,M_right},{[-1,1,3],[1,2],[-2,2,3]});
+if ~iscell(H) && ndims(B_left) == 2
+	% Two-site Hamiltonian version
+	A2s = ncon({A_left,C,A_right},{[-1,1,-2],[1,2],[2,-4,-3]});
+	A2s_prime = ncon({A2s,H},{[-1,1,2,-4],[-2,-3,1,2]});
+	A2s_prime = A2s_prime + ncon({B_left,A2s},{[-1,1],[1,-2,-3,-4]});
+	A2s_prime = A2s_prime + ncon({A2s,B_right},{[-1,-2,-3,1],[1,-4]});
+	M = ncon({conj(N_left),A2s_prime,conj(N_right)},{[1,-1,2],[1,2,4,3],[-2,3,4]});
+else
+	M_left = applyT(B_left,N_left,H,A_left,'l');
+	M_right = applyT(B_right,N_right,H,A_right,'r');
+	M = ncon({M_left,C,M_right},{[-1,1,3],[1,2],[-2,2,3]});
+end
 [U,~,V] = svd(M,'econ');
 D_cut = min(D_new - D,size(U,2));
 U = U(:,1:D_cut);
