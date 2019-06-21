@@ -1,7 +1,7 @@
 function A_new = applyH2s(A2s,H,B_left,B_right,mode)
 if strcmp(mode,'generic')
 	A_new = applyH2s_generic(A2s,H,B_left,B_right);
-elseif strcmp(mode,'schur') | strcmp(mode,'multicell')
+elseif strcmp(mode,'schur') || strcmp(mode,'multicell')
 	W = cell2tensor(H,size(A2s,2));
 	A_new = applyH2s_generic(A2s,W,B_left,B_right);
 elseif strcmp(mode,'twosite')

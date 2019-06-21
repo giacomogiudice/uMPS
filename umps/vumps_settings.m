@@ -28,7 +28,7 @@ settings.linsolver.options.dynamicfactor = 1e-2;
 settings.linsolver.options.mintol = eps;
 settings.linsolver.options.maxtol = 1e-3;
 % Merge settings with custom ones
-if nargin == 1
+if exist('custom_settings','var') && ~isempty(custom_settings)
 	settings = mergestruct(settings,custom_settings);
 end
 % Update eigsolver settings for real matrices

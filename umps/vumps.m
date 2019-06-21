@@ -1,6 +1,6 @@
 function [A_left,A_right,C,A,output,blocks,stats] = vumps(H,D,d,settings)
 % Parse settings
-if nargin == 3
+if ~exist('settings','var') || isempty(settings)
 	settings = vumps_settings();
 else
 	settings = vumps_settings(settings);
@@ -19,7 +19,7 @@ elseif isequal(settings.mode,'multicell')
 	 [A_left,A_right,C,A,output,blocks,stats] = vumps_multicell(H,D,d,settings);
 	return
 else
-	error(['Unrecognized mode' settings.mode])
+	error(['Unrecognized mode ' settings.mode '.'])
 end
 
 if all(isfield(settings.initial,{'A_left','A_right','C'}))
@@ -28,7 +28,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	A_right = settings.initial.A_right;
 	C = settings.initial.C;
 	assert(isequal(size(A_left),size(A_right)),'Size mismatch between left and right canonical forms.');
-	assert(isequal([size(A_left,1),size(A_left,2)],size(C)),'Size mismatch between canonical forms and central tensor');
+	assert(isequal([size(A_left,1),size(A_left,2)],size(C)),'Size mismatch between canonical forms and central tensor.');
 	% Compute error to update tolerances
 	err = error_gauge([],A_left,A_right,C);
 	% Update tolerances
@@ -46,7 +46,7 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 		[A_left,A_right,C] = increasebond(D,A_left,A_right,C,H,B_left,B_right);
 		A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 	elseif D < size(A_left,1)
-		error('Bond dimension provided is smaller than initial conditions');
+		error('Bond dimension provided is smaller than initial conditions.');
 	end
 else 
 	% Nothing is provided, generate at random

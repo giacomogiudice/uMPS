@@ -6,7 +6,10 @@ A_left = reshape(permute(A,[1,3,2]),[d*D,D]);
 A_right = reshape(A,[D,d*D]);
 % Use polar decomposition
 [UC_left,~,VC_left] = svd(C_left,'econ');
-if nargin == 3
+<<<<<<< HEAD
+if exist('C_right','var') && ~isempty(C_right)
+=======
+>>>>>>> origin/master
 	[UC_right,~,VC_right] = svd(C_right,'econ');
 else
 	UC_right = UC_left;

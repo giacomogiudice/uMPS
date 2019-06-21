@@ -12,9 +12,7 @@ N_right = nullspace(A_right,'r');
 if ~iscell(H) && ndims(B_left) == 2
 	% Two-site Hamiltonian version
 	A2s = ncon({A_left,C,A_right},{[-1,1,-2],[1,2],[2,-4,-3]});
-	A2s_prime = ncon({A2s,H},{[-1,1,2,-4],[-2,-3,1,2]});
-	A2s_prime = A2s_prime + ncon({B_left,A2s},{[-1,1],[1,-2,-3,-4]});
-	A2s_prime = A2s_prime + ncon({A2s,B_right},{[-1,-2,-3,1],[1,-4]});
+	A2s_prime = applyH2s(A2s,H,B_left,B_right,'twosite');
 	M = ncon({conj(N_left),A2s_prime,conj(N_right)},{[1,-1,2],[1,2,4,3],[-2,3,4]});
 else
 	M_left = applyT(B_left,N_left,H,A_left,'l');

@@ -35,9 +35,7 @@ A_prime = applyHA(AC,H,B_left,B_right,A_left,A_right,'twosite');
 P1 = ncon({conj(N_left),A_prime},{[1,-1,2],[1,-2,2]});
 % Second projector
 A2s = ncon({AC,A_right},{[-1,1,-2],[1,-4,-3]});
-A2s_prime = ncon({A2s,H},{[-1,1,2,-4],[-2,-3,1,2]});
-A2s_prime = A2s_prime + ncon({B_left,A2s},{[-1,1],[1,-2,-3,-4]});
-A2s_prime = A2s_prime + ncon({A2s,B_right},{[-1,-2,-3,1],[1,-4]});
+A2s_prime = applyH2s(A2s,H,B_left,B_right,'twosite');
 P2 = ncon({conj(N_left),A2s_prime,conj(N_right)},{[1,-1,2],[1,2,4,3],[-2,3,4]});
 g = P1(:)'*P1(:) + P2(:)'*P2(:);
 end
