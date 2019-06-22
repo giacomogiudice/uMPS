@@ -13,203 +13,100 @@ end
 end
 
 function [B,E] = fixedblock_generic(H,A,direction,settings)
-chi = size(H,1);
-[D,~,d] = size(A);
-eigsolver = settings.eigsolver.handle;
-eigsolver_options.isreal = settings.isreal;
-eigsolver_mode = 'lm';
-eigsolver_options.issym = false;
-
-if isfield(settings.advice,'B')
-	eigsolver_options.v0 = reshape(settings.advice.B,[D*D*chi,1]);
+if exist('settings','var') && isfield(settings,'advice') && isfield(settings.advice,'B')
+	settings.eigsolver.options.v0 = reshape(settings.advice.B,[],1);
 end
-
-if direction == 'l'
-	% Compute right dominant eigenvector
-	fapplyTv = @(v) applyTv(v,A,H,A,'l');
-	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
-	B = reshape(B,[D,D,chi]);
-elseif direction == 'r'
-	% Compute right dominant eigenvector
-	fapplyTv = @(v) applyTv(v,A,H,A,'r');
-	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
-	B = reshape(B,[D,D,chi]);
-end
+[B,E] = fixedpoint(A,H,A,direction,settings);
 end
 
 function [B,E] = fixedblock_schur(H,A,direction,settings)
 chi = size(H,1);
 [D,~,d] = size(A);
-id = reshape(eye([D,D]),[D*D,1]);
-% Shortcuts to solvers
-tol = max(eps,settings.linsolver.options.tol);
-maxit = min(D*D,settings.linsolver.options.maxit);
-settings.linsolver.options.v0 = [];
-linsolver = settings.linsolver.handle;
-eigsolver = settings.eigsolver.handle;
-eigsolver_options.isreal = settings.isreal;
-eigsolver_mode = 'lm';
-eigsolver_options.issym = false;
 
+% Compute dominant eigenvectors of A
+[rho_left,rho_right] = dominant_eigenvector_canonical(A,direction,settings);
+
+% Start from corner and solver for each B_a
 if direction == 'l'
-	% Calculate left block
-	B = zeros([D*D,chi]);
-	% Compute right dominant eigenvector of A
-	if isstruct(settings) & isfield(settings.advice,'C')
-		C = settings.advice.C;
-		eigsolver_options.v0 = reshape((C*C').',[D*D,1]);
-	end
-	fapplyTv = @(v) applyTv(v,A,1,A,'r');
-	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
-	rho = rho/(id'*rho);
-	% Start from the corner
-	a = chi;
-	assert(H{a,a} == 1,'Element H{%d,%d} must be 1.',a,a);
-	B(:,a) = id;
-	for a = (chi-1):-1:1
-		% Compute new Y_a
-		Y = zeros([D^2,1]);
+	corner = chi;
+	ind = (chi-1):-1:1;
+	rho = rho_right;
+else
+	corner = 1;
+	ind = 2:1:chi;
+	rho = rho_left;
+end
+assert(H{corner,corner} == 1,'Element H{%d,%d} must be 1.',corner,corner);
+B(:,corner) = reshape(eye(D,D),[D*D,1]);
+for a = ind
+	% Compute new Y_a
+	Y = zeros([D^2,1]);
+	if direction == 'l'
 		for b = chi:-1:(a+1)
 			if ~isempty(H{b,a})
 				Y = Y + applyTv(B(:,b),A,H{b,a},A,'l');
 			end
 		end
-		% Compute new B_a
-		if isempty(H{a,a})
-			B(:,a) = Y;
-		else
-			assert(isscalar(H{a,a}),'Element H{%d,%d} is not a scalar.',a,a);
-			% Load initial guess
-			if isstruct(settings) & isfield(settings.advice,'B')
-				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
-			end
-			if H{a,a} == 1
-				applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
-				b = Y - (rho.'*Y)*id;
-			elseif abs(H{a,a}) < 1
-				applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'l');
-				b = Y;
-			else
-				error('Diagonal element in H has absolute value larger than 1.');
-			end
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
-		end
-	end
-	B = reshape(B,[D,D,chi]); 
-	E = real(Y.'*rho);
-elseif direction == 'r'
-	% Calculate right block
-	B = zeros([D*D,chi]);
-	% Compute left dominant eigenvector of A
-	if isfield(settings.advice,'C')
-		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C'*C,[D*D,1]);
-	end
-	fapplyTv = @(v) applyTv(v,A,1,A,'l');
-	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
-	rho = rho/(id'*rho);
-	% Start from the corner
-	a = 1;
-	assert(H{a,a} == 1,'Element H{%d,%d} must be 1.',a,a);
-	B(:,a) = id;
-	for a = 2:chi
-		% Compute new Y_a
-		Y = zeros([D^2,1]);
+	else
 		for b = 1:(a-1)
 			if ~isempty(H{a,b})
 				Y = Y + applyTv(B(:,b),A,H{a,b},A,'r');
 			end
 		end
-		% Compute new B_a
-		if isempty(H{a,a})
-			B(:,a) = Y;
-		else
-			assert(isscalar(H{a,a}),'Element H{%d,%d} is not a scalar.',a,a);
-			% Load initial guess
-			if isstruct(settings) & isfield(settings.advice,'B')
-				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
-			end
-			if H{a,a} == 1
-				applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
-				b = Y - (rho.'*Y)*id;
-			elseif abs(H{a,a}) < 1
-				applyM = @(x) x - H{a,a}*applyTv(x,A,1,A,'r');
-				b = Y;
-			else
-				error('Diagonal element in H has absolute value larger than 1.');
-			end
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
-		end
 	end
-	E = real(Y.'*rho);
-	B = reshape(B,[D,D,chi]);
-else
-	error(['Unrecognized direction' direction '.']);
+	% Compute new B_a
+	if isempty(H{a,a})
+		B(:,a) = Y;
+	else
+		assert(isscalar(H{a,a}),'Element H{%d,%d} is not a scalar.',a,a);
+		% Load initial guess
+		if isstruct(settings) & isfield(settings.advice,'B')
+			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+		end
+		if H{a,a} == 1
+			v_left = rho_left;
+			v_right = rho_right;
+		elseif abs(H{a,a}) < 1
+			v_left = 0;
+			v_right = 0;
+		else
+			error('Diagonal element in H has absolute value larger than 1.');
+		end
+		Tfun = @(x) applyTv(x,A,H{a,a},A,direction);
+		B(:,a) = geometric_series(Y,Tfun,v_left,v_right,direction,settings);
+	end
 end
+B = reshape(B,[D,D,chi]); 
+E = real(Y.'*rho);
 end
 
 function [B,E] = fixedblock_twosite(H,A,direction,settings)
 [D,~,d] = size(A);
-id = reshape(eye(D,D),[D*D,1]);
-% Shortcuts to solvers
-tol = max(eps,settings.linsolver.options.tol);
-maxit = min(D*D,settings.linsolver.options.maxit);
-settings.linsolver.options.v0 = [];
-linsolver = settings.linsolver.handle;
-eigsolver = settings.eigsolver.handle;
-eigsolver_options.isreal = settings.isreal;
-eigsolver_mode = 'lm';
-eigsolver_options.issym = false;
 
+% Compute dominant eigenvectors of A
+[rho_left,rho_right] = dominant_eigenvector_canonical(A,direction,settings);
+
+% Compute relevant boundary
+block = ncon({A,A},{[-1,1,-2],[1,-4,-3]});
 if direction == 'l'
-	% Left block
-	% Compute right dominant eigenvector of A
-	if isstruct(settings) & isfield(settings.advice,'C')
-		C = settings.advice.C;
-		eigsolver_options.v0 = reshape((C*C').',[D*D,1]);
-	end
-	fapplyTv = @(v) applyTv(v,A,1,A,'r');
-	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
-	rho = rho/(id'*rho);
-	% Compute left boundary
-	block = ncon({A,A},{[-1,1,-2],[1,-4,-3]});
 	h = ncon({conj(block),H,block},{[5,1,2,-1],[1,2,3,4],[5,3,4,-2]});
-	h = reshape((h+h')/2,[D*D,1]);
-	% Solve left linear system
-	if isstruct(settings) & isfield(settings.advice,'B')
-		settings.linsolver.options.v0 = reshape(settings.advice.B,[D*D,1]);
-	end
-	applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
-	b = h - real(rho.'*h)*id;
-	[B,~] = linsolver(applyM,b,settings.linsolver.options);
-	B = reshape(B,[D,D]);
-	E = real(h.'*rho);
+	rho = rho_right;
 elseif direction == 'r'
-	% Right block
-	% Compute left dominant eigenvector of A
-	if isstruct(settings) & isfield(settings.advice,'C')
-		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C'*C,[D*D,1]);
-	end
-	fapplyTv = @(v) applyTv(v,A,1,A,'l');
-	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
-	rho = rho/(id'*rho);
-	% Compute right boundary
-	block = ncon({A,A},{[-1,1,-2],[1,-4,-3]});
 	h = ncon({conj(block),H,block},{[-1,1,2,5],[1,2,3,4],[-2,3,4,5]});
-	h = reshape((h+h)/2,[D*D,1]);
-	% Solve right linear system
-	if isstruct(settings) & isfield(settings.advice,'B')
-		settings.linsolver.options.v0 = reshape(settings.advice.B,[D*D,1]);
-	end
-	applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
-	b = h - real(rho.'*h)*id;
-	[B,~] = linsolver(applyM,b,settings.linsolver.options);
-	B = reshape(B,[D,D]);
-	E = real(rho.'*h);
+	rho = rho_left;
 else
-	error(['Unrecognized direction' direction '.']);
+	error(['Unrecognized direction ' direction '.']);
 end
+
+% Solve linear system
+if isstruct(settings) & isfield(settings.advice,'B')
+	settings.linsolver.options.v0 = reshape(settings.advice.B,[D*D,1]);
+end
+h = reshape((h+h')/2,[D*D,1]);
+Tfun = @(x) applyTv(x,A,1,A,direction);
+B = geometric_series(h,Tfun,rho_left,rho_right,direction,settings);
+B = reshape(B,[D,D]);
+E = real(h.'*rho);
 end
 
 function [B,E] = fixedblock_multicell(H,A,direction,settings)
@@ -223,34 +120,26 @@ chi = size(H{1},1);
 [D,~,d] = size(A{1});
 id = reshape(eye([D,D]),[D*D,1]);
 B = zeros([D*D,chi]);
-% Shortcuts to solvers
-tol = max(eps,settings.linsolver.options.tol);
-maxit = min(D*D,settings.linsolver.options.maxit);
-settings.linsolver.options.v0 = [];
-linsolver = settings.linsolver.handle;
-eigsolver = settings.eigsolver.handle;
-eigsolver_options.isreal = settings.isreal;
-eigsolver_mode = 'lm';
-eigsolver_options.issym = false;
-
 Hall = combineMPO(H);
 
+[rho_left,rho_right] = dominant_eigenvector_canonical(A,direction,settings);
+
+% Start from corner and solver for each B_a
 if direction == 'l'
-	% Compute right dominant eigenvector of A
-	if isstruct(settings) & isfield(settings.advice,'C')
-		C = settings.advice.C;
-		eigsolver_options.v0 = reshape((C*C').',[D*D,1]);
-	end
-	fapplyTv = @(v) applyTv(v,A,1,A,'r');
-	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
-	rho = rho/(id'*rho);
-	% Start from the corner
-	a = chi;
-	assert(all(cellfun(@(h) h == 1,Hall{a,a})),'All {%d,%d} H must be 1.',a,a);
-	B(:,a) = id;
-	for a = (chi-1):-1:1
-		% Compute new Y_a
-		Y = zeros([D^2,1]);
+	corner = chi;
+	ind = (chi-1):-1:1;
+	rho = rho_right;
+else
+	corner = 1;
+	ind = 2:1:chi;
+	rho = rho_left;
+end
+assert(all(cellfun(@(h) h == 1,Hall{corner,corner})),'All {%d,%d} H must be 1.',corner,corner);
+B(:,corner) = reshape(eye(D,D),[D*D,1]);
+for a = ind
+	% Compute new Y_a
+	Y = zeros([D^2,1]);
+	if direction == 'l'
 		for b = chi:-1:a
 			if ~isempty(Hall{b,a})
 				for s = 1:size(Hall{b,a},1)
@@ -258,46 +147,7 @@ if direction == 'l'
 				end
 			end
 		end
-		% Compute new B_a
-		Hdiag = Hall{a,a}; 
-		if isempty(Hdiag)
-			B(:,a) = Y;
-		else
-			assert(all(cellfun(@(h) isscalar(h),Hdiag)),'One or more diagonal elements in H are not scalar.');
-			% Load initial guess
-			if isstruct(settings) & isfield(settings.advice,'B')
-				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
-			end
-			if all(cellfun(@(h) h == 1,Hdiag))
-				applyM = @(x) x - applyTv(x,A,1,A,'l') + (rho.'*x)*id;
-				b = Y - (rho.'*Y)*id;
-			elseif all(cellfun(@(h) h < 1,Hdiag))
-				applyM = @(x) x - prod(cell2mat(Hdiag))*applyTv(x,A,1,A,'l');
-				b = Y;
-			else
-				error('One or more element in H have absolute value larger than 1.');
-			end
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
-		end
-	end
-	B = reshape(B,[D,D,chi]);
-	E = real(Y.'*rho)/N;
-elseif direction == 'r'
-	% Compute left dominant eigenvector of A
-	if isstruct(settings) & isfield(settings.advice,'C')
-		C = settings.advice.C;
-		eigsolver_options.v0 = reshape(C'*C,[D*D,1]);
-	end
-	fapplyTv = @(v) applyTv(v,A,1,A,'l');
-	[rho,~] = eigsolver(fapplyTv,D^2,1,eigsolver_mode,eigsolver_options);
-	rho = rho/(id'*rho);
-	% Start from the corner
-	a = 1;
-	assert(all(cellfun(@(h) h == 1,Hall{a,a})),'All {%d,%d} H must be 1.',a,a);
-	B(:,a) = id;
-	for a = 2:chi
-		% Compute new Y_a
-		Y = zeros([D^2,1]);
+	else
 		for b = 1:(a-1)
 			if ~isempty(Hall{a,b})
 				for s = 1:size(Hall{a,b},1)
@@ -305,86 +155,78 @@ elseif direction == 'r'
 				end
 			end
 		end
-		% Compute new B_a
-		Hdiag = Hall{a,a}; 
-		if isempty(Hdiag)
-			B(:,a) = Y;
-		else
-			assert(all(cellfun(@(h) isscalar(h),Hdiag)),'One or more diagonal elements in H are not scalar.');
-			% Load initial guess
-			if isstruct(settings) & isfield(settings.advice,'B')
-				settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
-			end
-			if all(cellfun(@(h) h == 1,Hdiag))
-				applyM = @(x) x - applyTv(x,A,1,A,'r') + (rho.'*x)*id;
-				b = Y - (rho.'*Y)*id;
-			elseif all(cellfun(@(h) abs(h) < 1,Hdiag))
-				applyM = @(x) x - prod(cell2mat(Hdiag))*applyTv(x,A,1,A,'r');
-				b = Y;
-			else
-				error('One or more element in H have absolute value larger than 1.');
-			end
-			[B(:,a),~] = linsolver(applyM,Y,settings.linsolver.options);
-		end
 	end
-	B = reshape(B,[D,D,chi]);
-	E = real(Y.'*rho)/N;
-else
-	error(['Unrecognized direction' direction '.']);
+	% Compute new B_a
+	Hdiag = Hall{a,a}; 
+	if isempty(Hdiag)
+		B(:,a) = Y;
+	else
+		assert(all(cellfun(@(h) isscalar(h),Hdiag)),'One or more diagonal elements in H are not scalar.');
+		% Load initial guess
+		if isstruct(settings) & isfield(settings.advice,'B')
+			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
+		end
+		if all(cellfun(@(h) h == 1,Hdiag))
+			v_left = rho_left;
+			v_right = rho_right;
+		elseif abs(H{a,a}) < 1
+			v_left = 0;
+			v_right = 0;
+		else
+			error('Diagonal element in H has absolute value larger than 1.');
+		end
+		Tfun = @(x) prod(cell2mat(Hdiag))*applyTv(x,A,1,A,direction);
+		B(:,a) = geometric_series(Y,Tfun,v_left,v_right,direction,settings);
+	end
 end
+B = reshape(B,[D,D,chi]);
+E = real(Y.'*rho)/N;
 end
 
 
 function [B,E] = fixedblock_multicell_generic(H,A,direction,settings)
-H
 N = length(H);
 chi = size(H{1},1);
 [D,~,d] = size(A{1});
-id = reshape(eye([D,D]),[D*D,1]);
-B = zeros([D*D,chi]);
-% Shortcuts to solvers
-tol = max(eps,settings.linsolver.options.tol);
-maxit = min(D*D,settings.linsolver.options.maxit);
-settings.linsolver.options.v0 = [];
-linsolver = settings.linsolver.handle;
-eigsolver = settings.eigsolver.handle;
-eigsolver_options.isreal = settings.isreal;
-eigsolver_mode = 'lm';
-eigsolver_options.issym = false;
+if exist('settings','var') && isfield(settings,'advice') && isfield(settings.advice,'B')
+	settings.eigsolver.options.v0 = reshape(settings.advice.B,[],1);
+end
+[B,E] = fixedpoint(A,H,A,direction,settings);
+E = E/N;
+end
 
-if direction == 'l'
-	if isstruct(settings) & isfield(settings.advice,'H_left')
-		eigsolver_options.v0 = reshape(settings.advice.H_left,[D*D*chi,1]);
-	end
-	% Compute right dominant eigenvector
-	fapplyTv = @(v) applyTvNtimes(v,A,H,A,'l');
-	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
-	E = E/N;
-	B = reshape(B,[D,D,chi]);
-elseif direction == 'r'
-	if isstruct(settings) & isfield(settings.advice,'H_right')
-			eigsolver_options.v0 = reshape(settings.advice.H_right,[D*D*chi,1]);
-	end
-	% Compute right dominant eigenvector
-	fapplyTv = @(v) applyTvNtimes(v,A,H,A,'r');
-	[B,E] = eigsolver(fapplyTv,D^2*chi,1,eigsolver_mode,eigsolver_options);
-	E = E/N;
-	B = reshape(B,[D,D,chi]);
+function [v_left,v_right] = dominant_eigenvector_canonical(A,direction,settings)
+if iscell(A)
+	[D,~,d] = size(A{1});
 else
-	error(['Unrecognized direction' direction '.']);
+	[D,~,d] = size(A);
 end
-end
-function v = applyTNtimes(M,A1,H,A2,direction)
-N = length(A1);
+id = reshape(eye(D,D),[D*D,1]);
 if direction == 'l'
-	ind = 1:N;
+	% Left block
+	if isstruct(settings) & isfield(settings.advice,'C')
+		C = settings.advice.C;
+		settings.eigsolver.options.v0 = reshape((C*C').',[D*D,1]);
+	end
+	rho = fixedpoint(A,1,A,'r');
+	rho = reshape(rho/trace(rho),[D*D,1]);
+	v_left = id;
+	v_right = rho;
 elseif direction == 'r'
-	ind = N:(-1):1;
+	% Right block
+	if isstruct(settings) & isfield(settings.advice,'C')
+		C = settings.advice.C;
+		settings.eigsolver.options.v0 = reshape(C'*C,[D*D,1]);
+	end
+	rho = fixedpoint(A,1,A,'l');
+	rho = reshape(rho/trace(rho),[D*D,1]);
+	v_left = rho;
+	v_right = id;
+else
+	error(['Unrecognized direction ' direction '.']);
 end
-for n = ind
-	v = applyT(M,A1{n},H{n},A2{n},direction);
 end
-end
+
 
 function v = applyTvNtimes(v,A1,H,A2,direction)
 N = length(A1);
@@ -397,4 +239,3 @@ for n = ind
 	v = applyTv(v,A1{n},H{n},A2{n},direction);
 end
 end
- 

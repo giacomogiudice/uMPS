@@ -81,6 +81,11 @@ end
 % Generate the environment blocks
 [B_left,energy_left] = fixedblock(H,A_left,'l',settings);
 [B_right,energy_right] = fixedblock(H,A_right,'r',settings);
+if strcmp(settings.mode,'generic')
+	B_norm = sqrt(abs(ncon({B_left,B_right},{[1,2,3],[1,2,3]})));
+	B_left = B_left/B_norm;
+	B_right = B_right/B_norm;
+end
 energy_prev = mean([energy_left,energy_right]);
 % Main VUMPS loop
 output.flag = 1;
@@ -92,6 +97,10 @@ end
 for iter = 1:settings.maxit
 	tic
 	% Solve effective problem for A
+	if ~all([isreal(B_left),isreal(B_right)])
+		settings.isreal = 0;
+		settings.eigsolver.options.isreal = 0;
+	end
 	settings.eigsolver.options.v0 = reshape(A,[D*D*d,1]);
 	applyHAv = @(v) reshape(applyHA(reshape(v,[D,D,d]),H,B_left,B_right,A_left,A_right,settings.mode),[D*D*d,1]);
 	[Av,~] = eigsolver(applyHAv,D*D*d,1,settings.eigsolver.mode,settings.eigsolver.options);
