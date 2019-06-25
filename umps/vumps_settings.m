@@ -38,12 +38,12 @@ end
 
 % Do some minimal checks
 assert(mod(settings.maxit,1) == 0,'%s must be an integer.','settings.maxit');
-assert(settings.tol <= 1 & settings.tol >= 0,'%s must be between 0 and 1.','settings.tol');
-assert(settings.eigsolver.options.dynamicfactor <= 1 & settings.eigsolver.options.dynamicfactor >= 0,'%s must be between 0 and 1.','settings.eigsolver.options.dynamicfactor');
+assert(settings.tol <= 1 && settings.tol >= 0,'%s must be between 0 and 1.','settings.tol');
+assert(settings.eigsolver.options.dynamicfactor <= 1 && settings.eigsolver.options.dynamicfactor >= 0,'%s must be between 0 and 1.','settings.eigsolver.options.dynamicfactor');
 assert(settings.eigsolver.options.maxtol >= settings.eigsolver.options.mintol,'In %s, mintol must be smaller than maxtol.','settings.eigsolver.options');
 assert(mod(settings.linsolver.options.maxit,1) == 0,'%s must be an integer.','settings.linsolver.options.maxit');
-assert(settings.linsolver.options.tol <= 1 & settings.linsolver.options.tol >= 0,'%s must be between 0 and 1.','settings.linsolver.options.tol');
-assert(settings.linsolver.options.dynamicfactor <= 1 & settings.linsolver.options.dynamicfactor >= 0,'%s must be between 0 and 1.','settings.linsolver.options.dynamicfactor');
+assert(settings.linsolver.options.tol <= 1 && settings.linsolver.options.tol >= 0,'%s must be between 0 and 1.','settings.linsolver.options.tol');
+assert(settings.linsolver.options.dynamicfactor <= 1 && settings.linsolver.options.dynamicfactor >= 0,'%s must be between 0 and 1.','settings.linsolver.options.dynamicfactor');
 assert(settings.linsolver.options.maxtol >= settings.linsolver.options.mintol,'In %s, mintol must be smaller than maxtol.','settings.linsolver.options');
 % Turn off undesired warnings
 warning off MATLAB:bicgstab:tooSmallTolerance;

@@ -39,11 +39,12 @@ elseif isequal(model,'xxz')
 end
 
 % Define parameters for VUMPS simulation
-D = 20;
+D = [10,20,30,40];
 d = 2;
 settings.mode = 'schur';
 settings.maxit = 20;
-settings.tol = eps;
+settings.tol = 1e-12;
+settings.isreal = true;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.A_left = A_left;
 	settings.initial.A_right = A_right;
@@ -63,7 +64,6 @@ plot(1:output.iter,stats.err,'-s')
 set(gca,'yscale','log')
 xlabel('iterations')
 legend({'$|E - E_{\rm exact}|$','$|E^{(n)} - E^{(n-1)}|$','$\epsilon$'})
-
 figure(2)
 plot(diag(C),'x')
 hold on

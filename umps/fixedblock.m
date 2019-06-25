@@ -21,7 +21,7 @@ end
 
 function [B,E] = fixedblock_schur(H,A,direction,settings)
 chi = size(H,1);
-[D,~,d] = size(A);
+D = size(A,1);
 
 % Compute dominant eigenvectors of A
 [rho_left,rho_right] = dominant_eigenvector_canonical(A,direction,settings);
@@ -60,7 +60,7 @@ for a = ind
 	else
 		assert(isscalar(H{a,a}),'Element H{%d,%d} is not a scalar.',a,a);
 		% Load initial guess
-		if isstruct(settings) & isfield(settings.advice,'B')
+		if isstruct(settings) && isfield(settings.advice,'B')
 			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
 		end
 		if H{a,a} == 1
@@ -81,7 +81,7 @@ E = real(Y.'*rho);
 end
 
 function [B,E] = fixedblock_twosite(H,A,direction,settings)
-[D,~,d] = size(A);
+D = size(A,1);
 
 % Compute dominant eigenvectors of A
 [rho_left,rho_right] = dominant_eigenvector_canonical(A,direction,settings);
@@ -99,7 +99,7 @@ else
 end
 
 % Solve linear system
-if isstruct(settings) & isfield(settings.advice,'B')
+if isstruct(settings) && isfield(settings.advice,'B')
 	settings.linsolver.options.v0 = reshape(settings.advice.B,[D*D,1]);
 end
 h = reshape((h+h')/2,[D*D,1]);
@@ -117,8 +117,7 @@ end
 N = length(H);
 assert(isequal(size(H),size(A)),'Size mismatch in input cell arrays.');
 chi = size(H{1},1);
-[D,~,d] = size(A{1});
-id = reshape(eye([D,D]),[D*D,1]);
+D = size(A{1},1);
 B = zeros([D*D,chi]);
 Hall = combineMPO(H);
 
@@ -163,7 +162,7 @@ for a = ind
 	else
 		assert(all(cellfun(@(h) isscalar(h),Hdiag)),'One or more diagonal elements in H are not scalar.');
 		% Load initial guess
-		if isstruct(settings) & isfield(settings.advice,'B')
+		if isstruct(settings) && isfield(settings.advice,'B')
 			settings.linsolver.options.v0 = reshape(settings.advice.B(:,:,a),[D*D,1]);
 		end
 		if all(cellfun(@(h) h == 1,Hdiag))
@@ -186,8 +185,6 @@ end
 
 function [B,E] = fixedblock_multicell_generic(H,A,direction,settings)
 N = length(H);
-chi = size(H{1},1);
-[D,~,d] = size(A{1});
 if exist('settings','var') && isfield(settings,'advice') && isfield(settings.advice,'B')
 	settings.eigsolver.options.v0 = reshape(settings.advice.B,[],1);
 end
@@ -197,45 +194,32 @@ end
 
 function [v_left,v_right] = dominant_eigenvector_canonical(A,direction,settings)
 if iscell(A)
-	[D,~,d] = size(A{1});
+	D = size(A{1},1);
 else
-	[D,~,d] = size(A);
+	D = size(A,1);
 end
 id = reshape(eye(D,D),[D*D,1]);
 if direction == 'l'
 	% Left block
-	if isstruct(settings) & isfield(settings.advice,'C')
+	if isstruct(settings) && isfield(settings.advice,'C')
 		C = settings.advice.C;
 		settings.eigsolver.options.v0 = reshape((C*C').',[D*D,1]);
 	end
-	rho = fixedpoint(A,1,A,'r');
+	rho = fixedpoint(A,1,A,'r',settings);
 	rho = reshape(rho/trace(rho),[D*D,1]);
 	v_left = id;
 	v_right = rho;
 elseif direction == 'r'
 	% Right block
-	if isstruct(settings) & isfield(settings.advice,'C')
+	if isstruct(settings) && isfield(settings.advice,'C')
 		C = settings.advice.C;
 		settings.eigsolver.options.v0 = reshape(C'*C,[D*D,1]);
 	end
-	rho = fixedpoint(A,1,A,'l');
+	rho = fixedpoint(A,1,A,'l',settings);
 	rho = reshape(rho/trace(rho),[D*D,1]);
 	v_left = rho;
 	v_right = id;
 else
 	error(['Unrecognized direction ' direction '.']);
-end
-end
-
-
-function v = applyTvNtimes(v,A1,H,A2,direction)
-N = length(A1);
-if direction == 'l'
-	ind = 1:N;
-elseif direction == 'r'
-	ind = N:(-1):1;
-end
-for n = ind
-	v = applyTv(v,A1{n},H{n},A2{n},direction);
 end
 end

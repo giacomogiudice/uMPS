@@ -19,7 +19,7 @@ f_exact = (-1/beta)*integral(F,0,pi)/(2*pi);
 m_exact = (beta > beta_crit)*(1 - k_baxter^2)^(1/8);
 
 % Define parameters for VUMPS simulation
-D = 16;
+D = [4,8,16,32,64];	% Variable bond dimension
 settings.mode = 'generic';
 settings.eigsolver.mode = 'lm';
 settings.maxit = 20;

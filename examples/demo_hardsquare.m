@@ -15,6 +15,7 @@ E_exact = 1.503048082475332264322066329475553689385781;
 % Define parameters for VUMPS simulation
 D = 8;
 settings.mode = 'generic';
+settings.isreal = 1;
 settings.eigsolver.mode = 'lm';
 settings.maxit = 20;
 settings.tol = eps;

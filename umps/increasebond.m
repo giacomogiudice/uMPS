@@ -1,9 +1,10 @@
-function [A_left_new,A_right_new,C_new] = increasebond(D_new,A_left,A_right,C,H,B_left,B_right)
+function [A_left_new,A_right_new,C_new,A_new] = increasebond(D_new,A_left,A_right,C,H,B_left,B_right)
 [D,~,d] = size(A_left);
 assert(D_new >= D,'Bond dimension can only be increased.');
 assert(D_new <= d*D,'Increasing the bond dimension by more than d times is not possible.');
 A_left_new = zeros(D_new,D_new,d);
 A_right_new = zeros(D_new,D_new,d);
+A_new = zeros(D_new,D_new,d);
 C_new = zeros(D_new,D_new);
 % Compute nullspace tensors
 N_left = nullspace(A_left,'l');
@@ -27,6 +28,8 @@ V = V(:,1:D_cut);
 for k = 1:d
 	A_left_new(1:D,:,k) = [A_left(:,:,k),N_left(:,:,k)*U];
 	A_right_new(:,1:D,k) = [A_right(:,:,k);V'*N_right(:,:,k)];
+	A_new(1:D,1:D) = A_left(:,:,k)*C;
 end
 C_new(1:D,1:D) = C;
+
 end

@@ -40,10 +40,11 @@ elseif isequal(model,'xxz')
 		E_exact = Delta/4 - sin(gamma)*integral(@(x)(1-tanh(x*gamma)./tanh(x*pi)),0,inf,'RelTol',eps);
 	end
 end
+% A 4-site unit cell is overkill, only a 2-site is necessary
 H = {W,W,W,W};
 
 % Define parameters for VUMPS simulation
-D = 9;
+D = [8,16,24,32];
 d = 2;
 settings.mode = 'multicell';
 settings.maxit = 20;
@@ -54,7 +55,7 @@ if exist('A_left','var') & exist('A_right','var') & exist('C','var')
 	settings.initial.C = C;
 end
 % Launch VUMPS simulation
-[~,~,C,~,output,~,stats] = vumps(H,D,d,settings);
+[A_left,A_right,C,~,output,~,stats] = vumps(H,D,d,settings);
 output
 
 % Plot results
