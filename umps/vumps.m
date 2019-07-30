@@ -40,6 +40,10 @@ if all(isfield(settings.initial,{'A_left','A_right','C'}))
 	A = ncon({A_left,C},{[-1,1,-3],[1,-2]});
 	D = size(C,1);
 	assert(D <= D_list(1),'Bond dimension of initial MPS must be smaller or equal to first element of D_list.');
+	if settings.isreal && ~all([isreal(A_left),isreal(A_right),isreal(C)])
+		settings.isreal = false;
+		settings.eigsolver.options.isreal = false;
+	end
 else 
 	% Nothing is provided, generate at random
 	A = randn([D,D,d]);
@@ -82,8 +86,8 @@ for iter = 1:settings.maxit
 	tic
 	% Solve effective problems for A and C
 	if ~all([isreal(B_left),isreal(B_right)])
-		settings.isreal = 0;
-		settings.eigsolver.options.isreal = 0;
+		settings.isreal = false;
+		settings.eigsolver.options.isreal = false;
 	end
 	[A,C] = solve_local(A_left,C,A_right,A,H,B_left,B_right,settings);
 	% Update the canonical forms

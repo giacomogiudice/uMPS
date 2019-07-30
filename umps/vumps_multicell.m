@@ -36,7 +36,6 @@ else
 	if ~settings.isreal
 		A = cellfun(@(a) a + 1i*randn([D,D,d]),A,'UniformOutput',false);
 	end
-	% A = cellfun(@(h) randn([D,D,d]) + 1i*randn([D,D,d]),H,'UniformOutput',false);
 	C = cellfun(@(h) diag(rand(1,D)),H,'UniformOutput',false);
 	for n = 1:N
 		[A_left{n},A_right{n}] = update_canonical(A{n},C{pbc(n-1)},C{n});
