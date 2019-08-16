@@ -23,6 +23,7 @@ settings.linsolver.handle = @bicgstab_;
 settings.linsolver.options = struct;
 settings.linsolver.options.tol = 1e-12;
 settings.linsolver.options.maxit = 100;
+settings.linsolver.options.v0 = [];
 settings.linsolver.options.dynamictol = true;
 settings.linsolver.options.dynamicfactor = 1e-2;
 settings.linsolver.options.mintol = eps;

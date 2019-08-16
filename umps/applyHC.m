@@ -1,5 +1,5 @@
 function A_new = applyHC(C,H,B_left,B_right,A_left,A_right,mode)
-if strcmp(mode,'generic') | strcmp(mode,'schur') | strcmp(mode,'multicell')
+if strcmp(mode,'generic') || strcmp(mode,'schur') || strcmp(mode,'multicell')
 	A_new = applyHC_generic(C,B_left,B_right);
 elseif strcmp(mode,'twosite')
 	A_new = applyHC_twosite(C,H,B_left,B_right,A_left,A_right);

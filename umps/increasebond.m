@@ -1,5 +1,6 @@
-function [A_left_new,A_right_new,C_new,A_new] = increasebond(D_new,A_left,A_right,C,H,B_left,B_right)
+function [A_left_new,A_right_new,C_new,A_new,B_left_new,B_right_new] = increasebond(D_new,A_left,A_right,C,H,B_left,B_right)
 [D,~,d] = size(A_left);
+chi = size(B_left,3);
 assert(D_new >= D,'Bond dimension can only be increased.');
 assert(D_new <= d*D,'Increasing the bond dimension by more than d times is not possible.');
 A_left_new = zeros(D_new,D_new,d);
@@ -31,5 +32,8 @@ for k = 1:d
 	A_new(1:D,1:D) = A_left(:,:,k)*C;
 end
 C_new(1:D,1:D) = C;
-
+B_left_new = zeros(D_new,D_new,chi);
+B_right_new = zeros(D_new,D_new,chi);
+B_left_new(1:D,1:D,:) = B_left;
+B_right_new(1:D,1:D,:) = B_right;
 end

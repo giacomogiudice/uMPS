@@ -83,13 +83,15 @@ for iter = 1:settings.maxit
 	tic
 	for n = 1:N
 		% Solve effective problems for A, C_left and C_right
-		[A{n},C_left,C_right] = solve_local(A_left{n},C{pbc(n-1)},A_right{n},C{n},A{n},H{n},B_left{n},B_right{n},settings);
+		[A{n},C_left,C_right] = ...
+			solve_local(A_left{n},C{pbc(n-1)},A_right{n},C{n},A{n},H{n},B_left{n},B_right{n},settings);
 		% Update the canonical forms
 		[A_left{n},A_right{n}] = update_canonical(A{n},C_left,C_right);
 		C{pbc(n-1)} = C_left;
 		C{n} = C_right;
 		% Update the next environment blocks
-		[B_left{pbc(n+1)},B_right{pbc(n+1)},energy(n)] = update_environments(shift(A_left,n),C{n},shift(A_right,n),C{pbc(n+1)},shift(H,n),B_left{pbc(n+1)},B_right{pbc(n+1)},settings);
+		[B_left{pbc(n+1)},B_right{pbc(n+1)},energy(n)] = ...
+			update_environments(shift(A_left,n),C{n},shift(A_right,n),C{pbc(n+1)},shift(H,n),B_left{pbc(n+1)},B_right{pbc(n+1)},settings);
 		% Get error
 		err(n) = error_gauge(A{n},A_left{n},A_right{n},C_left,C_right);
 	end
@@ -101,14 +103,15 @@ for iter = 1:settings.maxit
 	if settings.linsolver.options.dynamictol
 		settings.linsolver.options.tol = update_tol(min(err),settings.linsolver.options);
 	end
+	energydiff = energy - energy_prev;
 	% Print results of interation
 	if settings.verbose
-		fprintf('%4d\t%12g\t%12g\t%12g%12d%12.1f\n',iter,mean(energy),mean(energy_prev - energy),max(err),D_list(bond_ind),laptime);
+		fprintf('%4d\t%12g\t%12g\t%12g%12d%12.1f\n',iter,mean(energy),mean(energydiff),max(err),D_list(bond_ind),laptime);
 	end
 	if savestats
 		stats.err(iter) = max(err);
 		stats.energy(iter) = mean(energy);
-		stats.energydiff(iter) = mean(energy_prev - energy);
+		stats.energydiff(iter) = mean(energydiff);
 		stats.bond(iter) = D;
 	end
 	if bond_ind == length(D_list)
@@ -126,7 +129,8 @@ for iter = 1:settings.maxit
 		bond_ind = bond_ind + 1;
 		D = D_list(bond_ind);
 		for n = 1:N
-			[Anew_left{n},Anew_right{pbc(n+1)},Cnew{n},Anew{n}] = increasebond(D,A_left{n},A_right{pbc(n+1)},C{n},H{n},B_left{pbc(n+1)},B_right{pbc(n-1)});
+			[Anew_left{n},Anew_right{pbc(n+1)},Cnew{n},Anew{n},B_left{pbc(n+1)},B_right{pbc(n-1)}] = ...
+				increasebond(D,A_left{n},A_right{pbc(n+1)},C{n},H{n},B_left{pbc(n+1)},B_right{pbc(n-1)});
 		end
 		A_right = Anew_right;
 		A_left = Anew_left;
@@ -239,7 +243,7 @@ end
 energy = mean([energy_left,energy_right]);
 % Fix normalization in case of generic MPO
 if strcmp(settings.mode,'generic')
-	B_norm = sqrt(abs(ncon({B_left,B_right},{[1,2,3],[1,2,3]})));
+	B_norm = sqrt(abs(ncon({B_left,conj(C_left),C_left,B_right},{[1,4,3],[1,2],[4,5],[2,5,3]})));
 	B_left = B_left/B_norm;
 	B_right = B_right/B_norm;
 	energy = real(energy);

@@ -51,7 +51,6 @@ else
 		A = A + 1i*randn([D,D,d]);
 	end
 	C = diag(rand(D,1));
-	C = C/trace(C*C');
 	[A_left,A_right] = update_canonical(A,C);
 end
 % Initialize stats log
@@ -104,14 +103,15 @@ for iter = 1:settings.maxit
 	laptime = toc;
 	% Get error
 	err = error_gauge(A,A_left,A_right,C);
+	energydiff = energy - energy_prev;
 	% Print results of interation
 	if settings.verbose
-		fprintf('%4d\t%12g\t%12g\t%12g%12d%12.1f\n',iter,energy,energy_prev - energy,err,D_list(bond_ind),laptime);
+		fprintf('%4d\t%12g\t%12g\t%12g%12d%12.1f\n',iter,energy,energydiff,err,D_list(bond_ind),laptime);
 	end
 	if savestats
 		stats.err(iter) = err;
 		stats.energy(iter) = energy;
-		stats.energydiff(iter) = energy_prev - energy;
+		stats.energydiff(iter) = energydiff;
 		stats.bond(iter) = D;
 	end	
 	if bond_ind == length(D_list)
@@ -128,7 +128,7 @@ for iter = 1:settings.maxit
 		% Increase bond dimension
 		bond_ind = bond_ind + 1;
 		D = D_list(bond_ind);
-		[A_left,A_right,C,A] = increasebond(D,A_left,A_right,C,H,B_left,B_right);
+		[A_left,A_right,C,A,B_left,B_right] = increasebond(D,A_left,A_right,C,H,B_left,B_right);
 		[B_left,B_right] = update_environments(A_left,C,A_right,H,B_left,B_right,settings);
 	end
 	energy_prev = energy;
@@ -149,7 +149,7 @@ end
 A_left = ncon({U',A_left,U},{[-1,1],[1,2,-3],[2,-2]});
 A_right = ncon({V',A_right,V},{[-1,1],[1,2,-3],[2,-2]});
 A = ncon({U',A,V},{[-1,1],[1,2,-3],[2,-2]});
-C = S;
+C = S/norm(S,'fro');
 
 if nargout >= 5
 	[B_left,B_right] = update_environments(A_left,C,A_right,H,B_left,B_right,settings);
@@ -175,6 +175,7 @@ A = reshape(Av,[D,D,d]);
 settings.eigsolver.options.v0 = reshape(C,[D*D,1]);
 applyHCv = @(v) reshape(applyHC(reshape(v,[D,D]),H,B_left,B_right,A_left,A_right,settings.mode),[D*D,1]);
 [Cv,~] = eigsolver(applyHCv,D*D,1,settings.eigsolver.mode,settings.eigsolver.options);
+Cv = Cv/sign(Cv(1));
 C = reshape(Cv,[D,D]);
 end
 
@@ -182,18 +183,18 @@ function [B_left,B_right,energy] = update_environments(A_left,C,A_right,H,B_left
 if ~isempty(C)
 	settings.advice.C = C;
 end
-if ~isempty(B_left) && size(B_left,1) == size(C,1)
+if ~isempty(B_left)
 	settings.advice.B = B_left;
 end
 [B_left,energy_left] = fixedblock(H,A_left,'l',settings);
-if ~isempty(B_right) && size(B_right,1) == size(C,1)
+if ~isempty(B_right)
 	settings.advice.B = B_right;
 end
 [B_right,energy_right] = fixedblock(H,A_right,'r',settings);
 energy = mean([energy_left,energy_right]);
 % Fix normalization in case of generic MPO
 if strcmp(settings.mode,'generic')
-	B_norm = sqrt(abs(ncon({B_left,B_right},{[1,2,3],[1,2,3]})));
+	B_norm = sqrt(abs(ncon({B_left,conj(C),C,B_right},{[1,4,3],[1,2],[4,5],[2,5,3]})));
 	B_left = B_left/B_norm;
 	B_right = B_right/B_norm;
 	energy = real(energy);
