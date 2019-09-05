@@ -1,38 +1,39 @@
 function tensor = ncon(tensorList,legLinks,sequence,finalOrder)
-% ncon v1.01 (c) R. N. C. Pfeifer, 2014.
-% ==========
-% Network CONtractor: NCON
+% NCON Tensor network contractor.
+%
 % function A = ncon(tensorList,legLinks,sequence,finalOrder)
 % Contracts a single tensor network.
-% 
+%
 % Supports disjoint networks, trivial (dimension 1) indices, 1D objects, traces, and outer products (both through the zero-in-sequence notation and
 % through labelling an implicit trailing index of dimension 1).
-
+%
 % v1.01
 % =====
 % Added ability to disable input checking for faster performance
+%
+% ncon v1.01 (c) R. N. C. Pfeifer, 2014.
 
     if ~exist('finalOrder','var')
         % finalOrder not specified - use default: Negative indices in descending order, consecutive and starting from -1
         finalOrder = [];
     end
-    
+
     % Check inputs, generate default contraction sequence if required
     if ~exist('sequence','var')
         [sequence legLinks] = checkInputs(tensorList,legLinks,finalOrder);
     else
         [sequence legLinks] = checkInputs(tensorList,legLinks,finalOrder,sequence);
     end
-    
+
     if ~isempty(finalOrder)
         % Apply final ordering request
         legLinks = applyFinalOrder(legLinks,finalOrder);
     end
-    
+
     [tensor legs] = performContraction(tensorList,legLinks,sequence);
     tensor = tensor{1};
     legs = legs{1};
-    
+
     % Arrange legs of final output
     if numel(legs)>1 && ~isequal(legs,-1:-1:numel(legs))
         perm(-legs) = 1:numel(legs);
@@ -51,7 +52,7 @@ end
 
 function [tensorList legLinks] = performContraction(tensorList,legLinks,sequence)
     % Performs tensor contraction
-    
+
     warnedLegs = []; % Legs for which a warning has been generated
     while numel(tensorList)>1 || any(legLinks{1}>0)
         % Ensure contraction sequence is not empty - converts implicit outer products into zeros-in-sequence outer products
@@ -169,7 +170,7 @@ end
 
 function [tensor legs] = tcontract(T1,T2,legs1,legs2,contractLegs)
     % Contract T1 with T2 over indices listed in contractLegs
-    
+
     % If either tensor is a number (no legs), add a trivial leg to contract over.
     if numel(legs1)==0
         legs1 = max(abs(legs2))+1;
@@ -182,7 +183,7 @@ function [tensor legs] = tcontract(T1,T2,legs1,legs2,contractLegs)
             contractLegs = legs2;
         end
     end
-    
+
     % Find uncontracted legs
     freeLegs1 = legs1;
     freeLegs2 = legs2;
@@ -194,7 +195,7 @@ function [tensor legs] = tcontract(T1,T2,legs1,legs2,contractLegs)
         posFreeLegs2(freeLegs2==contractLegs(a)) = [];
         freeLegs2(freeLegs2==contractLegs(a)) = [];
     end
-    
+
     % Find contracted legs; match ordering of contracted legs on tensors T1 and T2
     posContLegs1 = 1:numel(legs1);
     posContLegs1(posFreeLegs1) = [];
@@ -202,7 +203,7 @@ function [tensor legs] = tcontract(T1,T2,legs1,legs2,contractLegs)
     for a=1:numel(posContLegs1)
         posContLegs2(a) = find(legs2==legs1(posContLegs1(a)),1);
     end
-    
+
     sz1 = [size(T1) ones(1,numel(legs1)-ndims(T1))];
     sz2 = [size(T2) ones(1,numel(legs2)-ndims(T2))];
     if numel(legs1)>1
@@ -216,7 +217,7 @@ function [tensor legs] = tcontract(T1,T2,legs1,legs2,contractLegs)
     T2 = reshape(T2,linkSize,prod(sz2(posFreeLegs2)));
     tensor = T1 * T2;
     tensor = reshape(tensor,[sz1(posFreeLegs1) sz2(posFreeLegs2) 1 1]);
-    
+
     % Return uncontracted index list. Uncontracted legs are in order [unrearranged uncontracted legs off tensor 1, unrearranged uncontracted legs off tensor 2].
     legs = [legs1(posFreeLegs1) legs2(posFreeLegs2)];
 end
@@ -226,7 +227,7 @@ function warnedLegs = warn_suboptimal(doing,couldDo,mode,warnedLegs,legList,legD
     % Mode 0: Doing traces on a tensor, did not do all at once
     % Mode 1: Contracting two tensors, missed some connecting legs
     % Mode 2: Contracting two tensors, one carries a traced index which has not yet been evaluated
-    
+
     % Let couldDo be the list of indices which should be contracted but which weren't
     for a=1:numel(doing)
         couldDo(couldDo==doing(a)) = [];
@@ -289,7 +290,7 @@ end
 
 function [sequence legLinks] = checkInputs(tensorList,legLinks,finalOrder,sequence)
     % Checks format of input data and returns separate lists of positive and negative indices
-    
+
     global ncon_skipCheckInputs;
     if isequal(ncon_skipCheckInputs,true)
         for a=1:numel(legLinks)
@@ -447,14 +448,14 @@ function [tensorList legLinks sequence warnedLegs] = zisOuterProduct(tensorList,
     % This function provides support for the zeros-in-sequence notation described in arXiv:1304.6112
 
     % Perform one or more outer products described by zeros in the contraction sequence
-    
+
     if all(sequence==0) % Final outer product of all remaining objects - ensure enough zeros are present in the sequence
         if numel(sequence) < numel(legLinks)-1
             sequence = zeros(1,numel(legLinks)-1);
             warning('ncon:zisShortSequence','Zeros-in-sequence notation used, and insufficient zeros provided to describe final tensor contraction. Finishing contraction anyway.');
         end
     end
-    
+
     % Determine number of outer products pending
     numOPs = 1;
     while sequence(numOPs)==0 && numOPs < numel(sequence)
@@ -468,7 +469,7 @@ function [tensorList legLinks sequence warnedLegs] = zisOuterProduct(tensorList,
         % OP of all remaining tensors
         OPlist = 1:numel(legLinks);
     else
-        % For OP of n tensors (n=numOPs+1) when more than n tensors remain, proceed past the zeros in the sequence and read nonzero indices until 
+        % For OP of n tensors (n=numOPs+1) when more than n tensors remain, proceed past the zeros in the sequence and read nonzero indices until
         % n+1 tensors accounted for. Failure to find n+1 tensors implies an invalid sequence.
         flags = false(1,numel(legLinks));
         ptr = numOPs+1;
@@ -505,7 +506,7 @@ function [tensorList legLinks sequence warnedLegs] = zisOuterProduct(tensorList,
                     t = [t 'zero']; %#ok<AGROW>
                 else
                     t = [t 'string of ' num2str(numOPs) ' zeros']; %#ok<AGROW>
-                end                
+                end
                 error([t ', while reading further indices to identify the ' num2str(numOPs+1) ' tensors involved in the outer product, ncon encountered an index ' num2str(sequence(ptr)) ' which appears on ' num2str(count) ' tensor(s). Index should appear on exactly 2 tensors at this time.']);
             end
             ptr = ptr + 1;

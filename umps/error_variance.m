@@ -1,14 +1,21 @@
 function g = error_variance(A_left,C,A_right,H,B_left,B_right)
+% ERROR_VARIANCE Approximates the error in the variance.
+%
+% g = error_variance(A_left,C,A_right,H,B_left,B_right)
 % Approximates the energy variance <(H - E)^2> using the two-site variance
-% as explained in arXiv:1711.01104.
+% as explained in this paper on the <a
+% href="matlab:web('https://arxiv.org/abs/1711.01104')">arXiv</a>.
+%
+% See also: NULLSPACE, VUMPS.
+
 if ~iscell(H) && ndims(B_left) == 2
-	g = error_variance_twosite(A_left,C,A_right,H,B_left,B_right);
-	return
+    g = error_variance_twosite(A_left,C,A_right,H,B_left,B_right);
+    return
 elseif iscell(H) && iscell(H{1,1})
-	B_mid = applyT(B_right,A_right,H{2},A_right,'r');
+    B_mid = applyT(B_right,A_right,H{2},A_right,'r');
 else
-	H = {H,H};
-	B_mid = B_right;
+    H = {H,H};
+    B_mid = B_right;
 end
 % Nullspaces
 N_left = nullspace(A_left,'l');
@@ -39,4 +46,3 @@ A2s_prime = applyH2s(A2s,H,B_left,B_right,'twosite');
 P2 = ncon({conj(N_left),A2s_prime,conj(N_right)},{[1,-1,2],[1,2,4,3],[-2,3,4]});
 g = P1(:)'*P1(:) + P2(:)'*P2(:);
 end
-

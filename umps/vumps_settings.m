@@ -1,4 +1,82 @@
 function settings = vumps_settings(custom_settings)
+% VUMPS_SETTINGS Construct settings structure for vumps problem.
+%
+% settings = vumps_settings()
+% Constructs a new settings structure.
+%
+% settings = vumps(custom_settings)
+% Merge custom settings to create a full settings structure.
+%
+% SUPPORTED OPTIONS
+% The outputted object has a tree-like structure. The following fields are
+% valid:
+% mode      - The mode of operation of the algorithm, depending on the
+%           format of the Hamiltonian. Choose between 'generic', 'schur',
+%           'twosite', and 'multicell'.
+% tol       - halting condition on the gauge error (default: 1e-12).
+% maxit     - maximum number of iterations (default: 100).
+% isreal    - tries to solve only for real tensors. This works if the
+%           Hamiltonian is real and the state is invariant under
+%           reflection.
+% verbose   - if true, prints results of each iteration to stdout.
+% eigsolver - structure that defines the iterative eigensolver to use and
+%           its internal settings. These are:
+%   handle  - function handle to the eigensolver (default: @eigs).
+%   mode    - Specifies which eigenvalue to find (default: 'sr').
+%   options - Internal options to provide to the eigensolver. These are
+%   (more can be provided depending on the specific solver):
+%       issym           - flag for symmetric problems (default: true).
+%       isreal          - flag for real problems (default: false).
+%       tol             - halting tolerance for the eigensolver 
+%                       (default: eps).
+%       dynamictol      - adjust the tolerance dynamically to the global
+%                       error, according to the formula 
+%                       tol = min(maxtol,max(dynamicfactor*err,mintol))
+%                       (default: true).
+%       dynamicfactor   - factor by which the tolerance is adjusted 
+%                       dynamically (see dynamictol) .                         
+%       mintol          - lower bound for the tolerance (see dynamictol)
+%                       (default: eps).
+%       maxtol          - upper bound for the tolerance (see dynamictol)
+%                       (default: 1e-3).
+% linsolver
+%   handle  - function handle to the linear solver. Because MATLAB does not
+%           have a consistent way of passing options, the following
+%           wrappers are provided: @bicgstab_, @bicgstabl_, @gmres_
+%           (default: @bicgstab_).
+%   options - Internal options to provide to the linear equation solver.
+%   These are (more can be provided depending on the specific solver):
+%       maxit           - maximum number of iterations of the solver
+%                       (default: 100).
+%       tol             - halting tolerance for the linear solver 
+%                       (default: eps).
+%       dynamictol      - adjust the tolerance dynamically to the global
+%                       error, according to the formula 
+%                       tol = min(maxtol,max(dynamicfactor*err,mintol))
+%                       (default: true).
+%       dynamicfactor   - factor by which the tolerance is adjusted 
+%                       dynamically (see dynamictol) .                         
+%       mintol          - lower bound for the tolerance (see dynamictol)
+%                       (default: eps).
+%       maxtol          - upper bound for the tolerance (see dynamictol)
+%                       (default: 1e-3).
+% initial   - structure to provide as initial guess. For a valid guess, all
+% the following fields muste ge provided
+%   A_left  - MPS tensor(s) in left-canonical form
+%   A_right - MPS tensor(s) in right-canonical form
+%   C       - central tensor(s) such that A_left*C = C*A_right
+% advice    - structure used internally to pass guesses to the iterative
+%           solvers
+%
+% EXAMPLE
+%   settings.mode = 'generic';
+%   settings.tol = 1e-8;
+%   settings.maxit = 15;
+%   settings = vumps_settings(settings);
+%
+% See also: VUMPS, EIGS, BICGSTAB_, BICGSTABL_, GMRES_.
+
+
 % Define default settings
 settings = struct;
 settings.mode = 'schur';

@@ -1,4 +1,6 @@
 function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,legCosts)
+% NETCON Finds most efficient way to contract a tensor network.
+%
 % function [sequence cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,legCosts)
 % Finds most efficient way to contract a tensor network
 % v2.01 by Robert N. C. Pfeifer 2014, 2015
@@ -13,8 +15,6 @@ function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,leg
 % - allowOPs: Allow contraction sequences including outer products: 0/false: No. 1/true: Yes. (true)
 % - legCosts: For costType==1: nx2 table. A row reading [a b] assigns a dimension of b to index a. Default: 2 for all legs.
 %             For costType==2: nx3 table. A row reading [a b c] assigns a dimension of bX^c to index a, for unspecified X. Default: 1X^1 for all legs.
-
-
 % Benchmarking examples
 % ---------------------
 % 3:1 1D MERA:
@@ -23,14 +23,14 @@ function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,leg
 % All in MATLAB, with OPs: 0.054s
 % Using C++, no OPs: 0.0019s
 % Using C++, with OPs: 0.0019s
-% 
+%
 % 9:1 2D MERA:
 % tic;netcon({[1 4 5 6 7 8],[2 9 10 11 12 13],[3 14 15 16 17 18],[-6 9 23 24 25 26],[-5 5 19 20 21 22],[8 14 27 28 29 30],[12 15 31 32 33 34],[22 25 28 31 35 36 37 38],[-4 20 23 35 39 40 41 42],[42 36 37 38 43 44 45 46],[41 24 44 26 47 48],[19 40 21 43 49 50],[27 45 29 30 51 52],[46 32 33 34 53 54],[-2 -3 39 49 47 55],[4 50 6 7 51 56],[48 10 11 53 13 57],[52 54 16 17 18 58],[55 56 57 58 -1 1 2 3]},0,2,1,1);toc
 % All in MATLAB, no OPs: 5.4s
 % All in MATLAB, with OPs: 6.1s
 % Using C++, no OPs: 0.066s
 % Using C++, with OPs: 0.069s
-% 
+%
 % 4:1 2D MERA:
 % tic;netcon({[64 72 73 19 22],[65 74 75 23 76],[66 77 20 79 28],[67 21 24 29 34],[68 25 78 35 80],[69 81 30 83 84],[70 31 36 85 86],[71 37 82 87 88],[-5 19 20 21 1 2 4 5],[22 23 24 25 3 26 6 27],[28 29 30 31 7 8 32 33],[34 35 36 37 9 38 39 40],[1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18],[10 11 13 14 41 42 43 44],[12 26 15 27 47 48 49 50],[16 17 32 33 53 54 55 56],[18 38 39 40 60 61 62 63],[-2 -3 -4 41 89],[72 73 42 47 90],[74 75 48 76 45],[77 43 79 53 46],[44 49 54 60 51],[50 78 61 80 52],[81 55 83 84 57],[56 62 85 86 58],[63 82 87 88 59],[89 90 45 46 51 52 57 58 59 -1 64 65 66 67 68 69 70 71]},0,2,1,1);toc
 % All in MATLAB, no OPs: 2486s (41.4m)
@@ -73,7 +73,7 @@ function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,leg
     if ~exist('allowOPs','var')
         allowOPs = 1;
     end
-    
+
     % Check input data (and strip trivial indices from legLinks)
     % ================
     if exist('legCosts','var')
@@ -81,7 +81,7 @@ function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,leg
     else
         [trivialindices,legCosts,legLinks] = checkInputData(legLinks,verbosity,costType,muCap,allowOPs);
     end
-    
+
     % Divide network into disjoint subnets
     % ====================================
     subnetlist = zeros(1,numel(legLinks));
@@ -92,7 +92,7 @@ function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,leg
         subnetcounter = subnetcounter + 1;
     end
     subnetcounter = subnetcounter-1;
-    
+
     % Evaluate contraction sequences for disjoint subnets
     % ===================================================
     sequence = cell(1,subnetcounter);
@@ -112,12 +112,12 @@ function [sequence,cost] = netcon(legLinks,verbosity,costType,muCap,allowOPs,leg
         [sequence{a},cost{a},freelegs{a},donetrace(a)] = netcon_getsubnetcost(legLinks(subnetlist==a),verbosity,costType,muCap,legCosts,allowOPs);
     end
     donetrace = any(donetrace);
-    
+
     % Perform outer products of subnets, add costs, and merge sequences
     % =================================================================
     [sequence,cost] = performOPs(sequence,cost,freelegs,legCosts,costType,verbosity);
     sequence = [sequence trivialindices]; % Append tracing over trivial indices on final object
-    
+
     % Display result
     % ==============
     if verbosity>0
@@ -174,7 +174,7 @@ function [sequence,cost] = performOPs(sequence,cost,freelegs,legCosts,costType,v
                     t = sequence{ptr}; sequence{ptr} = sequence{ptr+1}; sequence{ptr+1} = t;
                     t = cost{ptr}; cost{ptr} = cost{ptr+1}; cost{ptr+1} = t;
                     ptr = ptr - 1;
-                    if ptr==0 
+                    if ptr==0
                         ptr = 2;
                     end
                 else
@@ -229,7 +229,7 @@ function [sequence,cost,negindices,donetrace] = netcon_getsubnetcost(legLinks,ve
     % Get index lists for this subnet and trim legCosts
     % =================================================
     [posindices,negindices] = getIndexLists(cell2mat(legLinks));
-    
+
     % Any contraction to do?
     % ======================
     if numel(legLinks)<2
@@ -274,7 +274,7 @@ function [sequence,cost,negindices,donetrace] = netcon_getsubnetcost(legLinks,ve
         % Determine any traces (legs with both ends on a single tensor) and eliminate
         % ===========================================================================
         [tracedindices,donetrace,legLinks,legCosts,linkposindices] = eliminateTraces(legLinks,posindices,legCosts);
-        
+
         if isempty(linkposindices)
             % No positive indices after tracing
             sequence = posindices(tracedindices);
@@ -355,7 +355,7 @@ function [tracedindices,donetrace,legLinks,legCosts,posindices] = eliminateTrace
         end
     end
 end
-        
+
 function [legLinks,legCosts] = reprocessLegLinks(legLinks,posindices,negindices,legCosts)
     % Renumber all positive and negative indices consecutively
     % ========================================================
@@ -367,7 +367,7 @@ function [legLinks,legCosts] = reprocessLegLinks(legLinks,posindices,negindices,
             legLinks{a}(b) = -find(negindices==legLinks{a}(b))-numel(posindices);
         end
     end
-    
+
     % Assemble truncated cost table
     % =============================
     for a=size(legCosts,1):-1:1
@@ -546,7 +546,7 @@ function [trivialindices,legCosts,legLinks] = checkInputData(legLinks,verbosity,
                 error(['Dimension not specified for all negative indices. Supplied: ' num2str(t2) '     Required: ' num2str(negindices)])
             end
         end
-        
+
         % Store list of any summed trivial indices to be stripped
         if costType==1
             trivialindices = legCosts(legCosts(:,2)==1,1);
@@ -554,7 +554,7 @@ function [trivialindices,legCosts,legLinks] = checkInputData(legLinks,verbosity,
             trivialindices = legCosts(legCosts(:,2)==1 & legCosts(:,3)==0,1);
         end
         trivialindices = reshape(sort(trivialindices(trivialindices>0),'descend'),1,[]);
-        
+
         % Strip trivial indices
         for a=numel(trivialindices):-1:1
             for b=1:numel(legLinks)
@@ -569,7 +569,7 @@ function [trivialindices,legCosts,legLinks] = checkInputData(legLinks,verbosity,
             disp(' ');
             disp(['Ignore summed trivial indices: ' unpaddednum2str(trivialindices)]);
         end
-        
+
         % Order leg costs list
         t1 = legCosts(legCosts(:,1)>0,2:end);
         t1 = t1(ix1,:);
@@ -637,9 +637,9 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
         zerocost = [];
     end
     allowOPs = (allowOPs==1);
-    
+
     % This code uses the nomenclature of Appendix G, in which a tensor which may be contracted with the result of an outer product [e.g. C in Fig.4(a)] is denoted X.
-    
+
     % Structure of "objects": objects{numElements}{positionInList}{legFlags,tensorFlags,sequenceToBuild,costToBuild,isOP,OPmaxdim,allIn}
     % legFlags: Legs present on object
     % tensorFlags: Tensor constituents of object
@@ -648,19 +648,19 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
     % isOP: Indicates whether the contraction which yielded this object was an outer product
     % OPmaxdim: If isOP==true, then OPmaxdim gives the dimension of the largest constituent tensor
     % allIn: If this tensor is an object X which may be contracted with an outer product, allIn is the dimension of the tensor which contributed no external legs to X, i.e. xi_C in Fig.5(c).
-    
+
     objects = cell(1,numtensors);
     objects{1} = cell(1,numtensors);
     tensorflags = false(1,numtensors);
     numleglabels = size(legCosts,1);
     legflags = false(1,numleglabels);
-    
+
     % ### Create lists used in enforcing Sec. II.B.2.c (structure of tensor X contractable with an outer product)
     tensorXlegs = {};
     tensorXflags = [];
     tensorXdims = {};
     % ### End of creating lists
-        
+
     for a=1:numtensors
         tensorflags(a) = true;
         legflags(abs(legLinks{a})) = true;
@@ -671,25 +671,25 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
             [tensorXlegs,tensorXdims,tensorXflags] = addToTensorXlist(tensorXlegs,tensorXdims,tensorXflags,legflags,Inf*ones(1,costType),costType,true);
         end
         % ### End of setting up linked list data
-                
+
         tensorflags(a) = false;
         legflags(abs(legLinks{a})) = false;
     end
-    
+
     % ### Set up initial list data used in enforcing Sec. II.B.2.c (continued)
     tensorXflags = zeros(1,numel(tensorXflags));
     % ### End of setting up initial linked list data (continued)
-    
+
     for a=2:numtensors
         objects{a} = {};
     end
-    
+
     newobjectflags = cell(1,numtensors);
     newobjectflags{1} = true(1,numtensors);
-    
+
     oldmuCap = 0;
     newmuCap = Inf;
-    
+
     done = false;
     while ~done
         if verbosity>0
@@ -735,7 +735,7 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                             obj2list = 1:numel(objects{numInPieceTwo});
                         end
                         for b = obj2list
-                            
+
                             % Check object 1 and object 2 don't share any common tensors (which would then appear twice in the resulting network)
                             if ~any(objects{numInPieceOne}{a}{2} & objects{numInPieceTwo}{b}{2})
 
@@ -750,7 +750,7 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                                 OPmaxdim2 = obj2data{6};
                                 allIn2 = obj2data{7};
                                 isnew2 = newobjectflags{numInPieceTwo}(b);
-                                
+
                                 commonlegs = legs1 & legs2; % Common legs
                                 freelegs = xor(legs1,legs2);
                                 freelegs1 = legs1 & freelegs;
@@ -794,7 +794,7 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                                         end
                                     end
                                     for x = Xstart:Xend-1
-                                        if all(tensorXlegs{x}(freelegs)) 
+                                        if all(tensorXlegs{x}(freelegs))
                                             % IIB2c: xi_C > xi_A (25)
                                             if isGreaterThan_sd(tensorXdims{a},getProdLegDims(freelegs,legCosts,costType),costType)
                                                 % IIB2b: xi_C > xi_D && xi_C > xi_E: (16)
@@ -809,14 +809,14 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                                     end
                                     isOK = thisTensorXflag~=-1;
                                 end
-                                
+
                                 % If either constituent is the result of an outer product, check that it is being contracted with an appropriate tensor
                                 % [either this is a contraction over all indices, or this is an outer product with a tensor of larger total dimension than
                                 % either constituent of the previous outer product, and Eqs. (16), (25), and (26) are satisfied].
                                 if isOK && (isOP1 || isOP2)
                                     % Post-OP. This contraction only allowed if it is also an outer product, or if only one object is an outer product, it involves all indices on that tensor, and the other object satisfies the relevant conditions.
                                     isOK = xor(isOP1,isOP2) || ~commonlegsflag; % If contracting over common indices, only one object may be an outer product
-                                    if isOK 
+                                    if isOK
                                         if commonlegsflag
                                             % This contraction is not itself an outer product
                                             % Conditions on outer product object:
@@ -907,7 +907,7 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                                         % Compare new cost with best-so-far cost for construction of this object
                                         isOK = isLessThan(newCost,objects{numInObjects}{objectPtr}{4},costType);
                                     end
-                                    
+
                                     % ### If appropriate, update tensorXlist (list of tensors which can be contracted with objects created by outer product)
                                     if allowOPs
                                         if isOK
@@ -1002,17 +1002,17 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                                         newmaxdim = [];
                                         % ### End storing dummy value in maxdim
                                     end
-                                    
+
                                     % Update objects{} with this construction
                                     objects{numInObjects}{objectPtr} = {freelegs,tensorsInNew,newseq,newCost,thisIsOP,newmaxdim,allIn};
                                     % ### Note 1: If this tensor has the structure of Fig.5(c) and so is capable of being contracted with an outer product object, |E| is recorded in allIn (otherwise this is a dummy value).
                                     % ### Note 2: If this tensor is constructed by outer product, the dimension of the largest participating tensor is recorded in newmaxdim. (This is used in enforcing index-dimension-related constraints.) Otherwise, this is a dummy value.
-                                    
+
                                     % Flag as a new construction
                                     newobjectflags{numInObjects}(objectPtr) = true;
-                                    
+
                                     % If top level, display result
-                                    if numInObjects == numtensors 
+                                    if numInObjects == numtensors
                                         % ### If a valid contraction sequence has been found, there is no need to perform any contraction sequence more expensive than this. Set muCap accordingly.
                                         if costType==1
                                             muCap = newCost;
@@ -1031,10 +1031,10 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
                 end
             end
         end
-        
+
         % ### Finished searching if an object has been constructed which contains all tensors, and no new outer products have been enabled on the last pass (all(tensorXflags<2)==true, indicating that there are no new entries in the list of tensors which can be contracted with outer products).
         done = numel(objects{numtensors})~=0 && (all(tensorXflags<2) || ~allowOPs); % Final object has been constructed, and if outer products are allowed, also no new X's have recently been constructed
-        
+
         if ~done
             if all(tensorXflags<2)
                 % ### All X tensors have been present for an entire pass, so all permitted outer products at this cost have already been constructed.
@@ -1069,7 +1069,7 @@ function [sequence,cost] = netcon_nondisj(legLinks,legCosts,verbosity,costType,m
             end
         end
     end
-    
+
     % Extract final result
     sequence = int32(objects{numtensors}{1}{3});
     cost = objects{numtensors}{1}{4};
@@ -1085,7 +1085,7 @@ function [newCost,isOK] = getBuildCost(freelegs,commonlegs,legCosts,costType,old
         if newCost > muCap
             isOK = false;
         end
-        
+
         % Is cost too low (not made from new objects, and <=oldmuCap: This construction has been done before)
         if isOK && ~isnew
             if newCost <= oldmuCap
@@ -1100,7 +1100,7 @@ function [newCost,isOK] = getBuildCost(freelegs,commonlegs,legCosts,costType,old
             isOK = false;
             newCost = fusionpower;
         end
-        
+
         % Is cost too low (not made from new objects, and <=oldmuCap: This construction has been done before)
         if isOK && ~isnew
             if fusionpower <= oldmuCap
@@ -1108,7 +1108,7 @@ function [newCost,isOK] = getBuildCost(freelegs,commonlegs,legCosts,costType,old
                 newCost = Inf;
             end
         end
-        
+
         % If cost OK, determine total cost of construction
         if isOK
             newCostLen = max([numel(costToBuild1) numel(costToBuild2) fusionpower+1]);
@@ -1287,17 +1287,17 @@ function [tensorXlegs,tensorXdims,tensorXflags] = removeFromTensorXlist(tensorXl
             tensorXdims(a) = [];
             break;
         end
-    end    
+    end
 end
 
 function [tensorXlegs,tensorXdims,tensorXflags] = mergeTensorXlist(tensorXlegs,tensorXdims,tensorXflags,costType)
     % Merge provisional tensors into main list and decrease all nonzero flags by one.
     % For each provisional entry in turn, check if it makes redundant or is made redundant by any other provisional entries, and if it makes redundant any
     % non-provisional entries. If so, delete the redundant entries.
-    
+
     % Decrease non-zero tensorXflags
     tensorXflags(tensorXflags>0) = tensorXflags(tensorXflags>0)-1;
-    
+
     ptr = find(tensorXflags==1,1,'first');
     for a=numel(tensorXlegs):-1:ptr
         % Permit provisional tensors to be eliminated by other provisional tensors (elimination by non-provisional tensors was done earlier)
@@ -1310,7 +1310,7 @@ function [tensorXlegs,tensorXdims,tensorXflags] = mergeTensorXlist(tensorXlegs,t
             end
         end
     end
-    
+
     for a=ptr-1:-1:1
         % Now permit non-provisional tensors to be eliminated by provisional tensors, as these are now confirmed
         for b=ptr:numel(tensorXlegs)

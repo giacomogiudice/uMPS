@@ -1,13 +1,22 @@
 function A_new = applyH2s(A2s,H,B_left,B_right,mode)
+% APPLYH2S Apply a 2-site MPS tensor to an effective Hamiltonian.
+%
+% Note: This is legacy code.
+%
+% A_new = applyH2s(A2s,H,B_left,B_right,mode)
+% Applies the 2site effective Hamiltonian to a 2-site tensor A2s.
+%
+% See also: VUMPS.
+
 if strcmp(mode,'generic')
-	A_new = applyH2s_generic(A2s,H,B_left,B_right);
+    A_new = applyH2s_generic(A2s,H,B_left,B_right);
 elseif strcmp(mode,'schur') || strcmp(mode,'multicell')
-	W = cell2tensor(H,size(A2s,2));
-	A_new = applyH2s_generic(A2s,W,B_left,B_right);
+    W = cell2tensor(H,size(A2s,2));
+    A_new = applyH2s_generic(A2s,W,B_left,B_right);
 elseif strcmp(mode,'twosite')
-	A_new = applyH2s_twosite(A2s,H,B_left,B_right);
+    A_new = applyH2s_twosite(A2s,H,B_left,B_right);
 else
-	error(['Unrecognized mode ' mode '.']);
+    error(['Unrecognized mode ' mode '.']);
 end
 end
 

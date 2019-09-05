@@ -1,18 +1,26 @@
 function A_new = applyHA(A,H,B_left,B_right,A_left,A_right,mode)
+% APPLYHA Apply an MPS tensor to an effective Hamiltonian.
+%
+% A_new = applyHA(A,H,B_left,B_right,A_left,A_right,mode)
+% Applies the tensor A to the effective Hamiltonian formed by H and the
+% environments B_left and B_right. The mode is given by the VUMPS mode.
+%
+% See also: VUMPS.
+
 if strcmp(mode,'generic')
-	A_new = applyHA_generic(A,H,B_left,B_right);
+    A_new = applyHA_generic(A,H,B_left,B_right);
 elseif strcmp(mode,'schur')
-	A_new = applyHA_schur(A,H,B_left,B_right);
+    A_new = applyHA_schur(A,H,B_left,B_right);
 elseif strcmp(mode,'twosite')
-	A_new = applyHA_twosite(A,H,B_left,B_right,A_left,A_right);
+    A_new = applyHA_twosite(A,H,B_left,B_right,A_left,A_right);
 elseif strcmp(mode,'multicell')
-	if iscell(H)
-		A_new = applyHA_schur(A,H,B_left,B_right);
-	else
-		A_new = applyHA_generic(A,H,B_left,B_right);
-	end
+    if iscell(H)
+        A_new = applyHA_schur(A,H,B_left,B_right);
+    else
+        A_new = applyHA_generic(A,H,B_left,B_right);
+    end
 else
-	error(['Unrecognized mode ' mode '.']);
+    error(['Unrecognized mode ' mode '.']);
 end
 end
 
@@ -25,15 +33,15 @@ function A_new = applyHA_schur(A,H,B_left,B_right)
 chi = size(H,1);
 A_new = zeros(D,D,d);
 for a = 1:chi
-	for b = 1:a
-		if ~isempty(H{a,b})
-			if isscalar(H{a,b})
-				A_new = A_new + H{a,b}*ncon({B_left(:,:,a),A,B_right(:,:,b)},{[-1,1],[1,2,-3],[-2,2]});
-			else
-				A_new = A_new + ncon({B_left(:,:,a),A,H{a,b},B_right(:,:,b)},{[-1,1],[1,2,3],[-3,3],[-2,2]});
-			end
-		end
-	end
+    for b = 1:a
+        if ~isempty(H{a,b})
+            if isscalar(H{a,b})
+                A_new = A_new + H{a,b}*ncon({B_left(:,:,a),A,B_right(:,:,b)},{[-1,1],[1,2,-3],[-2,2]});
+            else
+                A_new = A_new + ncon({B_left(:,:,a),A,H{a,b},B_right(:,:,b)},{[-1,1],[1,2,3],[-3,3],[-2,2]});
+            end
+        end
+    end
 end
 end
 
