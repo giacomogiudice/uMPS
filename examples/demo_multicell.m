@@ -1,7 +1,6 @@
+import('algorithms.*');
 % The spin-1/2 operators
-sx = 1/2*[0,1;1,0];
-sy = 1/2*[0,-1i;1i,0];
-sz = 1/2*[1,0;0,-1];
+[sx,sy,sz] = util.su2gen(2);
 % Choose model to simulate
 model = 'xxz'
 if isequal(model,'ising')
@@ -20,7 +19,7 @@ elseif isequal(model,'xxz')
 	% Coupling along z (set between -1 and 1)
 	Delta = 2;
 	% Define MPO
-	W = cell(5,5);
+	W = SchurOperator(5,5);
 	W{1,1} = 1;
 	W{2,1} = sz;
 	W{3,1} = sy;
@@ -46,7 +45,6 @@ H = {W,W,W,W};
 % Define parameters for VUMPS simulation
 D = [8,16,24,32];
 d = 2;
-settings.mode = 'multicell';
 settings.maxit = 20;
 settings.tol = 1e-12;
 if exist('A_left','var') & exist('A_right','var') & exist('C','var')

@@ -1,14 +1,13 @@
+import('algorithms.*');
 % The spin-1/2 operators
-sx = 1/2*[0,1;1,0];
-sy = 1/2*[0,-1i;1i,0];
-sz = 1/2*[1,0;0,-1];
+[sx,sy,sz] = util.su2gen(2);
 % Choose model to simulate
 model = 'ising'
 if isequal(model,'ising')
 	% Transverse field
 	h = 0.6;
 	% Define MPO
-	W = cell(3,3);
+	W = SchurOperator(3,3);
 	W{1,1} = 1;
 	W{2,1} = -sz;
 	W{3,1} = -h*sx;
@@ -41,7 +40,6 @@ end
 % Define parameters for VUMPS simulation
 D = [10,20,30,40];
 d = 2;
-settings.mode = 'schur';
 settings.maxit = 20;
 settings.tol = 1e-12;
 settings.isreal = true;

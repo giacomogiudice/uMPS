@@ -1,11 +1,15 @@
 # Uniform Matrix Product States
-This small toolbox is designed to handle uniform _matrix product states_ (uMPS), i.e. matrix product states in the thermodynamic limit composed of a single, repeating unit cell.
+This small package is designed to handle uniform _matrix product states_ (uMPS), i.e. matrix product states in the thermodynamic limit composed of a single, repeating unit cell.
 Specifically, an implementation of the VUMPS algorithm [[1]] is provided, which can find uMPS approximations for the ground state of Hamiltonians, contract 2D partition functions, etc.
 
 ## Installation
-Once you fetched a copy, run `addpath('<path>/umps','<path>/lib')` from your MATLAB terminal and you are good to go.
+Once you fetched a copy, you want to add the package to your MATLAB path.
+The easiest way is running the command `addpath(genpath('<path>/umps'))` from your MATLAB terminal and you are good to go.
+Alternatively one can run `addpath('<path>/umps/classes','<path>/umps/inc','<path>/umps/lib')`.
+This adds the three necessary directories: `classes` contains all the class definitions, `inc` contains all the core  functions, and `lib` contains external resources.
+The subpackages are `algorithms` (main optimization routines), `linalg` (linear algebra routines for tensors) and `util` (extra functions that can come in handy).
 If you want to permanently add these directories to your matlabpath, use the command `savepath`.
- 
+
 A good place to get started and test that everything works in in the `examples` directory.
 Here you will find use cases of VUMPS to find ground states of different types of operators, and to approximately contract
 Additional information can be obtained with the command `help umps` or `help <command>`.
