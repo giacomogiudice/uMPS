@@ -1,3 +1,0 @@
-% UMPS
-%
-% Files
