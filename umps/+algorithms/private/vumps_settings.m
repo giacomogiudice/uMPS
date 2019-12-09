@@ -22,7 +22,7 @@ settings.eigsolver.options.mintol = eps;
 settings.eigsolver.options.maxtol = 1e-3;
 settings.linsolver.handle = @linalg.bicgstab;
 settings.linsolver.options = struct;
-settings.linsolver.options.tol = 1e-12;
+settings.linsolver.options.tol = eps;
 settings.linsolver.options.maxit = 100;
 settings.linsolver.options.v0 = [];
 settings.linsolver.options.dynamictol = true;
@@ -50,16 +50,4 @@ assert(settings.linsolver.options.maxtol >= settings.linsolver.options.mintol,'I
 % Turn off undesired warnings
 warning off MATLAB:bicgstab:tooSmallTolerance;
 warning off MATLAB:gmres:tooSmallTolerance;
-end
-
-function defaults = mergestruct(defaults,mods)
-	labels = fieldnames(mods);
-	for ind = 1:length(labels)
-		l = labels{ind};
-		if isstruct(mods.(l))
-			defaults.(l) = mergestruct(defaults.(l),mods.(l));
-		else
-			defaults.(l) = mods.(l);
-		end
-	end
 end

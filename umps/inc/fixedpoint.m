@@ -43,15 +43,3 @@ end
 fapply = @(t) applyT(t,A_1,O,A_2,direction);
 [rho,eta] = eigsolver(fapply,[D_1,D_2,chi],1,eigsolver_mode,eigsolver_options);
 end
-
-% function v = applyTvNtimes(v,A1,H,A2,direction)
-% N = length(A1);
-% if direction == 'l'
-%     ind = 1:N;
-% elseif direction == 'r'
-%     ind = N:(-1):1;
-% end
-% for n = ind
-%     v = applyTv(v,A1{n},H{n},A2{n},direction);
-% end
-% end

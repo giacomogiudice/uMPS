@@ -7,27 +7,14 @@ if isequal(model,'ising')
 	% Transverse field
 	h = 0.6;
 	% Define MPO
-	W = cell(3,3);
-	W{1,1} = 1;
-	W{2,1} = sz;
-	W{3,1} = h*sx;
-	W{3,2} = sz;
-	W{3,3} = 1;
+	W = SchurOperator({-sz,sz},{-h,sx});
 	% Exact energy
 	E_exact = integral(@(k) -1/(2*pi)*sqrt(1/4+h^2+h*cos(k)),0,pi,'RelTol',eps);
 elseif isequal(model,'xxz')
 	% Coupling along z (set between -1 and 1)
 	Delta = 2;
 	% Define MPO
-	W = SchurOperator(5,5);
-	W{1,1} = 1;
-	W{2,1} = sz;
-	W{3,1} = sy;
-	W{4,1} = sx;
-	W{5,2} = Delta*sz;
-	W{5,3} = sy;
-	W{5,4} = sx;
-	W{5,5} = 1;
+	W = SchurOperator({-sx,sx},{-sy,sy},{Delta,sz,sz});
 	% Exact energy
 	if Delta == 1
 		E_exact = 1/4 - log(2);

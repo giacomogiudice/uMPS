@@ -9,11 +9,28 @@ function varargout = vumps(H,D_list,d,settings)
 % detailed description of the algorithm, see the original paper on the <a
 % href="matlab:web('https://arxiv.org/abs/1701.07035')">arXiv</a>.
 %
-% [A_left,A_right,C,A,output,blocks,stats] = vumps(H,D_list,d,settings)
+% [A_left,A_right,C,A] = vumps(H,D_list,d)
 % Given an operator H acting on a space of physical dimetion d, a list of
 % bond dimensions D_list, find the MPS approximation of its leading
 % eigenvector as an MPS with canonical tensor A_left and A_right, with a
 % gauging matrix C and central tensor A.
+% [A_left,A_right,C,A] = vumps(H,D_list,d,tol)
+% Provide a halting condition based on the gauge error. This is equivalent
+% to choosing the settings.tol field.
+%
+% [A_left,A_right,C,A] = vumps(H,D_list,d,settings)
+% Pass specific options through a settings field. A detailed list of the
+% possible options is provided below.
+%
+% [A_left,A_right,C,A,output] = vumps(H,D_list,d,...)
+% The output structure contains information on the run, and energy and
+% variance of the output state.
+%
+% [A_left,A_right,C,A,output,blocks] = vumps(H,D_list,d,...)
+% The blocks structure contains the environment tensors of the final state.
+%
+% [A_left,A_right,C,A,output,blocks,stats] = vumps(H,D_list,d,...)
+% Additionally returns observables
 %
 % INDEXING CONVENTION
 % The indexing convention for the MPS tensors is (left,right,top), while
@@ -165,6 +182,10 @@ function varargout = vumps(H,D_list,d,settings)
 % Parse settings
 if ~exist('settings','var') || isempty(settings)
     settings = vumps_settings();
+elseif isnumeric(settings) && isscalar(settings)
+    tol = settings;
+    settings = vumps_settings();
+    settings.tol = tol;
 else
     settings = vumps_settings(settings);
 end
@@ -227,7 +248,7 @@ if nargout >= 6
     stats.energydiff = zeros(1,settings.maxit);
     stats.bond = zeros(1,settings.maxit);
 end
-% Build left and right blocks
+% Error in gauge transformation relationships
 err = error_gauge(A_left,A_right,C,A);
 % Update tolerances
 settings = update_tol(settings,err);
@@ -239,7 +260,6 @@ if settings.verbose
     fprintf('Iter\t      Energy\t Energy Diff\t Gauge Error\t    Bond Dim\tLap Time [s]\n')
     fprintf('   0\t%12g\n',energy_prev);
 end
-
 for iter = 1:settings.maxit
     tic
     % Solve effective problems for A and C

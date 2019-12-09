@@ -1,10 +1,16 @@
 import('algorithms.*');
+import('util.*');
 % The good ol' Pauli matrices
-[sx,sy,sz,si] = util.paulis();
+[X,Y,Z,I] = paulis();
 % Define Ising 2-body Hamiltonian term
+% Note: the constructor for TwoSiteOperator is just some eye-candy.
+% Alternatively one can make the two-body gate by hand such as
+% - ncon({Z,Z},{[-1,-3],[-2,-4]}) ...
+% - h/2*(ncon({X,I},{[-1,-3],[-2,-4]}) + ncon({I,X},{[-1,-3],[-2,-4]}))
+% Just remember to cast it as a TwoSiteOperator (otherwise it will be
+% treated as an MPO).
 h = 0.8;
-H_twosite = -ncon({sz,sz},{[-1,-3],[-2,-4]}) - h/2*(ncon({sx,si},{[-1,-3],[-2,-4]}) + ncon({si,sx},{[-1,-3],[-2,-4]}));
-H_twosite = TwoSiteOperator(H_twosite);
+H_twosite = TwoSiteOperator({-Z,Z},{-h,X});
 % Exact energy
 flambda = @(k) sqrt(h^2 + 2*h*cos(k) + 1);
 E_exact = integral(@(k) (-1/pi)*flambda(k),0,pi,'RelTol',eps);
@@ -52,6 +58,6 @@ ylabel('$\lambda_k$')
 
 % Compare observables
 E = output.energy;
-mx = abs(trace(applyT(C'*C,A_right,sx,A_right,'l')));
-mz = abs(trace(applyT(C'*C,A_right,sz,A_right,'l')));
+mx = abs(trace(applyT(C'*C,A_right,X,A_right,'l')));
+mz = abs(trace(applyT(C'*C,A_right,Z,A_right,'l')));
 fprintf('<H> error: %.4g, <X> error: %.4g, <Z> error: %.4g\n',abs(E - E_exact),abs(mx - mx_exact),abs(mz - mz_exact));
